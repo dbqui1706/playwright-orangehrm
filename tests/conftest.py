@@ -3,7 +3,7 @@ import pytest
 import os
 import logging
 from datetime import datetime
-from playwright.sync_api import Page, Browser, BrowserContext
+from playwright.sync_api import sync_playwright, Page, Browser, BrowserContext
 from config import SCREENSHOTS_DIR
 
 # Configure logging
@@ -14,32 +14,50 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+@pytest.fixture(scope="session")
+def browser():
+    """Create a Firefox browser instance for the entire test session.
+
+    Yields:
+        Browser: Playwright Firefox Browser instance
+    """
+    logger.info("Launching Firefox browser")
+    with sync_playwright() as playwright:
+        browser = playwright.firefox.launch(
+            headless=False,  # Set True for headless mode
+            slow_mo=100  # Slow down by 100ms for better visibility (optional)
+        )
+        yield browser
+        logger.info("Closing Firefox browser")
+        browser.close()
+
 @pytest.fixture(scope="function")
-def page(browser: Browser) -> Page: # type: ignore
+def page(browser: Browser) -> Page:
     """Create a new browser page for each test.
 
     Args:
-        browser: Playwright Browser instance (provided by pytest-playwright)
+        browser: Playwright Browser instance
 
     Yields:
         Page: Configured Playwright Page instance
     """
     logger.info("Creating new browser context and page")
-    
+
     # Create a new context with viewport settings fully responsive
-    context = browser.new_context(
-        viewport={"width": 1920, "height": 1080}
+
+    context: BrowserContext = browser.new_context(
+        viewport={'width': 1280, 'height': 1024}
     )
-    
+
     # Create a new page
     page = context.new_page()
-    
+
     # Set default timeout
     page.set_default_timeout(10000)  # 10 seconds
-    
+
     logger.info("Page initialized successfully")
     yield page
-    
+
     logger.info("Closing page and context")
     page.close()
     context.close()
@@ -59,7 +77,7 @@ def driver_init(page: Page, request):
     # Attach page to test class (maintaining compatibility with existing tests)
     request.cls.driver = page
     request.cls.page = page
-    
+
     yield page
 
 

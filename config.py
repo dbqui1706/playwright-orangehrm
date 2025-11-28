@@ -4,11 +4,13 @@
 BASE_URL = "https://opensource-demo.orangehrmlive.com/"
 
 # Test credentials
-# VALID_USERNAME = "admin-fat"
-# VALID_PASSWORD = "2742003Nam!"
+# ADMIN
 VALID_USERNAME = "admin"
 VALID_PASSWORD = "admin123"
-VALID_IDENTIFIER = "TESTER-NAM-001"
+
+# Employee
+EMPLOYEE_USERNAME = "john.done"
+EMPLOYEE_PASSWORD = "admin123"
 
 # Wait timeouts (in seconds)
 DEFAULT_WAIT_TIMEOUT = 15

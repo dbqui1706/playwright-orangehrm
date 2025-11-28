@@ -17,16 +17,27 @@ class TimesheetPage(BasePage):
     # Locators - Navigation
     CREATE_TIMESHEET_BUTTON = "button:has-text('Create Timesheet')"
     EDIT_BUTTON = "button:has-text('Edit')"
-    SUBMIT_BUTTON = "button:has-text('Submit')"
+    SUBMIT_BUTTON = "button:has-text('Save')"
     APPROVE_BUTTON = "button:has-text('Approve')"
     REJECT_BUTTON = "button:has-text('Reject')"
     RESET_BUTTON = "button:has-text('Reset')"
 
     # Locators - Timesheet Form
-    ADD_ROW_BUTTON = "//button[contains(., 'Add Row')]"
-    PROJECT_DROPDOWN = "//div[contains(@class, 'oxd-select-text')]"
+    ADD_ROW_BUTTON = "//button[contains(@class, 'oxd-icon bi-plus')]"
     PROJECT_INPUT = "//label[text()='Project']/parent::div/following-sibling::div//input"
-    ACTIVITY_INPUT = "//label[text()='Activity']/parent::div/following-sibling::div//input"
+
+    # Activity dropdown - more specific locator
+    # Activity is in a select dropdown, not an input field
+    ACTIVITY_DROPDOWN = "//div[contains(@class, 'oxd-select-text-input')]"
+    ACTIVITY_DROPDOWN_TRIGGER = "//div[contains(@class, 'oxd-select-text')]"
+
+    # Timesheet rows
+    TIMESHEET_ROWS = "//div[contains(@class, 'orangehrm-timesheet-table-body-row')]"
+
+    # Locators - Within a row (relative locators)
+    PROJECT_INPUT_IN_ROW = ".//input[@placeholder='Type for hints...']"
+    ACTIVITY_DROPDOWN_IN_ROW = ".//div[contains(@class, 'oxd-select-text')]"
+    TIME_CELLS_IN_ROW = ".//input[@placeholder='0.00']"
 
     # Locators - Time Entry Cells (dynamic based on day)
     TIME_CELL_TEMPLATE = "//input[@placeholder='0.00']"
@@ -37,11 +48,11 @@ class TimesheetPage(BasePage):
     GRAND_TOTAL = "//div[contains(@class, 'timesheet-grand-total')]"
 
     # Locators - Status
-    TIMESHEET_STATUS = "//p[contains(@class, 'timesheet-status')]"
-    STATUS_NOT_SUBMITTED = "//p[contains(text(), 'Not Submitted')]"
+    TIMESHEET_STATUS = "//div[contains(@class, 'timesheet-status')]"
+    STATUS_NOT_SUBMITTED = "//p[contains(normalize-space(), 'Status: Not Submitted')]"
     STATUS_SUBMITTED = "//p[contains(normalize-space(), 'Status: Submitted')]"
-    STATUS_APPROVED = "//p[contains(text(), 'Approved')]"
-    STATUS_REJECTED = "//p[contains(text(), 'Rejected')]"
+    STATUS_APPROVED = "//p[contains(normalize-space(), 'Status: Approved')]"
+    STATUS_REJECTED = "//p[contains(normalize-space(), 'Status: Rejected')]"
 
     # Locators - Comments
     COMMENT_TEXTAREA = "//textarea[contains(@class, 'oxd-textarea')]"
@@ -96,12 +107,19 @@ class TimesheetPage(BasePage):
         self.page.goto(full_url)
         self.page.wait_for_load_state('networkidle')
 
+    def is_create_timesheet_button_visible(self) -> bool:
+        """Check if Create Timesheet button is visible.
+
+        Returns:
+            bool: True if Create Timesheet button is visible
+        """
+        return self._is_element_visible(self.CREATE_TIMESHEET_BUTTON, timeout=3)
+
     def click_create_timesheet(self):
         """Click the Create Timesheet button."""
         logger.info("Clicking Create Timesheet button")
-        if self._is_element_visible(self.CREATE_TIMESHEET_BUTTON, timeout=3):
-            self._click(self.CREATE_TIMESHEET_BUTTON)
-            self.page.wait_for_timeout(2000)
+        self._click(self.CREATE_TIMESHEET_BUTTON)
+        self.page.wait_for_timeout(2000)
 
     def click_edit(self):
         """Click the Edit button."""
@@ -122,19 +140,25 @@ class TimesheetPage(BasePage):
             project_name: Project name to select
             row_index: Index of the row (0-based)
         """
-        logger.info(f"Selecting project: {project_name} at row {row_index}")
-        # Type in project input to trigger autocomplete
         project_inputs = self.page.locator(self.PROJECT_INPUT).all()
         if row_index < len(project_inputs):
-            project_inputs[row_index].fill(project_name[:3])
-            self.page.wait_for_timeout(1000)
-            # Select from dropdown
-            option_locator = f"//div[@role='listbox']//span[contains(text(), '{project_name}')]"
-            if self._is_element_visible(option_locator, timeout=3):
-                self._click(option_locator)
-                self.page.wait_for_timeout(500)
+            input_element = project_inputs[row_index]
+            # Clear và fill
+            input_element.clear()
+            input_element.fill(project_name[:3])
 
-    def select_activity(self, activity_name: str, row_index: int = 0):
+            # Đợi dropdown load
+            self.page.wait_for_timeout(1500)
+
+            # Sử dụng keyboard: Arrow Down để chọn option đầu tiên, rồi Enter
+            input_element.press("ArrowDown")
+            self.page.wait_for_timeout(300)
+            input_element.press("Enter")
+
+            logger.info(f"Successfully selected project: {project_name}")
+            self.page.wait_for_timeout(500)
+
+    def select_activity(self, activity_name: str, row_index: int = -1):
         """Select an activity from dropdown.
 
         Args:
@@ -142,14 +166,23 @@ class TimesheetPage(BasePage):
             row_index: Index of the row (0-based)
         """
         logger.info(f"Selecting activity: {activity_name} at row {row_index}")
-        activity_inputs = self.page.locator(self.ACTIVITY_INPUT).all()
-        if row_index < len(activity_inputs):
-            activity_inputs[row_index].fill(activity_name[:3])
-            self.page.wait_for_timeout(1000)
+
+        # Get all activity dropdown triggers on the page
+        activity_dropdowns = self.page.locator(self.ACTIVITY_DROPDOWN_TRIGGER).all()
+        logger.info(f"Found {len(activity_dropdowns)} activity dropdowns")
+
+        # Click the dropdown for the specific row
+        if row_index < len(activity_dropdowns):
+            activity_dropdowns[row_index].click()
+            self.page.wait_for_timeout(500)
+
+            # Select from the listbox that appears
             option_locator = f"//div[@role='listbox']//span[contains(text(), '{activity_name}')]"
             if self._is_element_visible(option_locator, timeout=3):
                 self._click(option_locator)
                 self.page.wait_for_timeout(500)
+        else:
+            logger.warning(f"Row index {row_index} is out of range. Available dropdowns: {len(activity_dropdowns)}")
 
     def fill_hours(self, day: str, hours: str, row_index: int = 0):
         """Fill hours for a specific day.
@@ -160,8 +193,9 @@ class TimesheetPage(BasePage):
             row_index: Index of the row (0-based)
         """
         logger.info(f"Filling {hours} hours for {day} at row {row_index}")
-        # Find time input cells
-        time_inputs = self.page.locator(self.TIME_CELL_TEMPLATE).all()
+
+        # Locator mới - lấy tất cả input trong duration cells
+        time_inputs = self.page.locator("//td[contains(@class, '--duration-input')]//input").all()
 
         # Calculate cell index based on row and day
         # Each row has 7 cells (Mon-Sun)
@@ -172,30 +206,49 @@ class TimesheetPage(BasePage):
 
         cell_index = row_index * 7 + day_index
 
+        logger.info(f"Total time inputs found: {len(time_inputs)}, using index: {cell_index}")
+
         if cell_index < len(time_inputs):
+            time_inputs[cell_index].clear()  # Clear trước
             time_inputs[cell_index].fill(hours)
-            # Press Tab to trigger save
-            time_inputs[cell_index].press('Tab')
+            time_inputs[cell_index].press('Tab')  # Trigger save
             self.page.wait_for_timeout(500)
+            logger.info(f"✓ Filled {hours} hours for {day}")
+        else:
+            logger.error(f"Cell index {cell_index} out of range (total: {len(time_inputs)})")
 
     def add_timesheet_row(self, project: str, activity: str, hours_data: dict = None, row_index: int = 0):
         """Add a complete timesheet row with project, activity, and hours.
+
+        This method now works with the last row (newly added row) to avoid issues
+        when multiple rows exist.
 
         Args:
             project: Project name
             activity: Activity name
             hours_data: Dictionary with days and hours (e.g., {'monday': '8', 'tuesday': '7.5'})
-            row_index: Index of the row (0-based)
+            row_index: Deprecated - kept for backward compatibility but not used
         """
         logger.info(f"Adding timesheet row: {project} - {activity}")
-        self.click_add_row()
-        self.select_project(project, row_index)
-        self.select_activity(activity, row_index)
 
+        # Step 1: Click Add Row button
+        self.click_add_row()
+
+        # Step 2: Get the last (newly added) row
+        last_row = self.get_last_timesheet_row()
+        if not last_row:
+            logger.error("Failed to get last timesheet row after clicking Add Row")
+            return
+
+        # Step 3: Select project in the last row
+        self.select_project_in_row(last_row, project)
+
+        # Step 4: Select activity in the last row
+        self.select_activity_in_row(last_row, activity)
+
+        # Step 5: Fill hours in the last row
         if hours_data:
-            for day, hours in hours_data.items():
-                if hours:  # Only fill if hours is not empty
-                    self.fill_hours(day, hours, row_index)
+            self.fill_hours_in_row(last_row, hours_data)
 
     def click_submit(self):
         """Click the Submit button."""
@@ -393,3 +446,120 @@ class TimesheetPage(BasePage):
                 if self._is_element_visible(self.PREV_WEEK_BUTTON, timeout=2):
                     self._click(self.PREV_WEEK_BUTTON)
                     self.page.wait_for_timeout(1000)
+
+    def count_timesheet_rows(self):
+        """Count the number of timesheet rows present."""
+        logger.info("Counting timesheet rows")
+        rows = self.page.locator(self.TIMESHEET_ROWS).all()
+        return len(rows)
+
+    def get_last_timesheet_row(self):
+        """Get the last (most recently added) timesheet row element.
+
+        Returns:
+            Locator: The last row element or None if no rows exist
+        """
+        rows = self.page.locator(self.TIMESHEET_ROWS).all()
+        if rows:
+            logger.info(f"Found {len(rows)} rows, returning last row")
+            return rows[-1]
+        logger.warning("No timesheet rows found")
+        return None
+
+    def select_project_in_row(self, row_element, project_name: str):
+        """Select a project within a specific row.
+
+        Args:
+            row_element: The row locator element
+            project_name: Project name to select
+        """
+        logger.info(f"Selecting project '{project_name}' in specific row")
+
+        # Find project input within this row
+        project_input = row_element.locator(self.PROJECT_INPUT_IN_ROW).first
+        project_input.fill(project_name[:3])
+        self.page.wait_for_timeout(1000)
+
+        # Select from dropdown that appears
+        option_locator = f"//div[@role='listbox']//span[contains(text(), '{project_name}')]"
+        if self._is_element_visible(option_locator, timeout=3):
+            self._click(option_locator)
+            self.page.wait_for_timeout(500)
+            logger.info(f"Successfully selected project: {project_name}")
+        else:
+            logger.warning(f"Project option '{project_name}' not found in dropdown")
+
+    def select_activity_in_row(self, row_element, activity_name: str):
+        """Select an activity within a specific row.
+
+        Args:
+            row_element: The row locator element
+            activity_name: Activity name to select
+        """
+        logger.info(f"Selecting activity '{activity_name}' in specific row")
+
+        # Find and click activity dropdown within this row
+        activity_dropdown = row_element.locator(self.ACTIVITY_DROPDOWN_IN_ROW).first
+        activity_dropdown.click()
+        self.page.wait_for_timeout(500)
+
+        # Select from listbox that appears
+        option_locator = f"//div[@role='listbox']//span[contains(text(), '{activity_name}')]"
+        if self._is_element_visible(option_locator, timeout=3):
+            self._click(option_locator)
+            self.page.wait_for_timeout(500)
+            logger.info(f"Successfully selected activity: {activity_name}")
+        else:
+            logger.warning(f"Activity option '{activity_name}' not found in dropdown")
+
+    def fill_hours_in_row(self, row_element, hours_data: dict):
+        """Fill hours for multiple days within a specific row.
+
+        Args:
+            row_element: The row locator element
+            hours_data: Dictionary with days and hours (e.g., {'monday': '8', 'tuesday': '7.5'})
+        """
+        logger.info(f"Filling hours in specific row: {hours_data}")
+
+        # Get all time cells in this row (should be 7 cells for Mon-Sun)
+        time_cells = row_element.locator(self.TIME_CELLS_IN_ROW).all()
+
+        # Map day names to cell indices
+        day_to_index = {
+            'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3,
+            'friday': 4, 'saturday': 5, 'sunday': 6
+        }
+
+        # Fill hours for each day
+        for day, hours in hours_data.items():
+            if hours:  # Only fill if hours is not empty
+                day_lower = day.lower()
+                if day_lower in day_to_index:
+                    cell_index = day_to_index[day_lower]
+                    if cell_index < len(time_cells):
+                        time_cells[cell_index].fill(hours)
+                        time_cells[cell_index].press('Tab')
+                        logger.info(f"Filled {hours} hours for {day}")
+                        self.page.wait_for_timeout(300)
+                    else:
+                        logger.warning(f"Cell index {cell_index} out of range for day {day}")
+                else:
+                    logger.warning(f"Invalid day name: {day}")
+
+    def is_row_empty(self, row_index: int = 0) -> bool:
+        """Check if row is empty (no project selected).
+
+        Returns:
+            bool: True if row is empty
+        """
+        project_inputs = self.page.locator(self.PROJECT_INPUT).all()
+
+        if row_index >= len(project_inputs):
+            return True
+
+        project_value = project_inputs[row_index].input_value()
+        return not project_value or project_value.strip() == ""
+
+    def is_save_successful(self):
+
+        return self.page.locator(self.SUCCESS_MESSAGE).is_visible()

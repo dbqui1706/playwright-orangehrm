@@ -1,387 +1,359 @@
 {
-  "test_suite": "Timesheet Management Module",
-  "description": "Test data for comprehensive Timesheet management in Time module",
+  "test_suite": "Timesheet Management Module - End-to-End Flow",
+  "description": "Test data for realistic Timesheet workflow: Employee creates → Supervisor approves/rejects",
+  "accounts": {
+    "employee": {
+      "username": "employee_user",
+      "password": "employee123",
+      "role": "ESS User",
+      "description": "Employee who creates and submits timesheets"
+    },
+    "supervisor": {
+      "username": "supervisor_user",
+      "password": "supervisor123",
+      "role": "ESS + Supervisor",
+      "description": "Supervisor who reviews and approves/rejects timesheets"
+    },
+    "admin": {
+      "username": "Admin",
+      "password": "admin123",
+      "role": "Admin",
+      "description": "Admin for setup and viewing all timesheets"
+    }
+  },
   "test_cases": {
-    "TS_TC31": {
-      "test_name": "Create timesheet for current week",
-      "category": "positive",
-      "description": "Create timesheet for current week, verify status is 'Not Submitted'",
-      "test_data": {
-        "week_type": "current",
-        "expected_status": "Not Submitted"
-      },
-      "expected_result": "Timesheet created successfully with status 'Not Submitted'"
-    },
-    "TS_TC32": {
-      "test_name": "Create timesheet for future week",
-      "category": "positive",
-      "description": "Create timesheet for future week",
-      "test_data": {
-        "week_type": "future",
-        "weeks_ahead": 1
-      },
-      "expected_result": "Timesheet created successfully for future week"
-    },
-    "TS_TC33": {
-      "test_name": "Create duplicate timesheet for same week",
-      "category": "negative",
-      "description": "Attempt to create timesheet that already exists for the same week",
-      "test_data": {
-        "week_type": "current"
-      },
-      "expected_error": "Timesheet Already Exists",
-      "expected_result": "Error message displayed or blocked from creating duplicate"
-    },
-    "TS_TC34": {
-      "test_name": "Verify timesheet grid displays 7 day columns",
-      "category": "gui",
-      "description": "Verify timesheet grid displays all 7 days of the week",
-      "test_data": {
-        "expected_columns": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
-      },
-      "expected_result": "Grid displays 7 columns for all days of the week"
-    },
-    "TS_TC35": {
-      "test_name": "Add row with valid project and activity",
-      "category": "positive",
-      "description": "Add a new row with valid project and activity",
+    "TS_HAPPY_01": {
+      "test_name": "Employee creates timesheet, submits, Supervisor approves",
+      "category": "happy_path",
+      "description": "Complete happy path: Employee → Submit → Supervisor → Approve",
       "test_data": {
         "project": "ACME Ltd",
-        "activity": "Development"
+        "activity": "Development",
+        "hours": {
+          "monday": "8",
+          "tuesday": "8",
+          "wednesday": "8",
+          "thursday": "8",
+          "friday": "8"
+        },
+        "expected_status_after_submit": "Submitted",
+        "expected_status_after_approve": "Approved"
       },
-      "expected_result": "New row appears with selected project and activity"
+      "expected_result": "Timesheet approved successfully"
     },
-    "TS_TC36": {
-      "test_name": "Add multiple rows with different projects",
-      "category": "positive",
-      "description": "Add multiple rows with different projects",
+    "TS_HAPPY_02": {
+      "test_name": "Employee saves draft, edits, then submits for approval",
+      "category": "happy_path",
+      "description": "Employee saves draft → Comes back → Edit → Submit → Approve",
+      "test_data": {
+        "project": "ACME Ltd",
+        "activity": "Development",
+        "initial_hours": {
+          "monday": "6",
+          "tuesday": "6"
+        },
+        "updated_hours": {
+          "monday": "8",
+          "tuesday": "8",
+          "wednesday": "8",
+          "thursday": "8",
+          "friday": "8"
+        },
+        "expected_status": "Approved"
+      },
+      "expected_result": "Draft saved, edited, submitted and approved"
+    },
+    "TS_ALT_01": {
+      "test_name": "Employee submits, Supervisor rejects with comment, Employee resubmits",
+      "category": "alternative_flow",
+      "description": "Submit → Reject (with comment) → Employee edits → Resubmit → Approve",
+      "test_data": {
+        "project": "ACME Ltd",
+        "activity": "Development",
+        "initial_hours": {
+          "monday": "10",
+          "tuesday": "10",
+          "wednesday": "10"
+        },
+        "rejection_comment": "Hours exceed project allocation. Please adjust.",
+        "corrected_hours": {
+          "monday": "8",
+          "tuesday": "8",
+          "wednesday": "8",
+          "thursday": "8",
+          "friday": "8"
+        },
+        "expected_final_status": "Approved"
+      },
+      "expected_result": "Rejection handled, resubmitted and approved"
+    },
+    "TS_ALT_02": {
+      "test_name": "Employee submits, Supervisor edits timesheet then approves",
+      "category": "alternative_flow",
+      "description": "Submit → Supervisor edits hours → Approve",
+      "test_data": {
+        "project": "ACME Ltd",
+        "activity": "Development",
+        "employee_hours": {
+          "monday": "7",
+          "tuesday": "7",
+          "wednesday": "7"
+        },
+        "supervisor_adjusted_hours": {
+          "monday": "8",
+          "tuesday": "8",
+          "wednesday": "8",
+          "thursday": "8",
+          "friday": "8"
+        },
+        "expected_status": "Approved"
+      },
+      "expected_result": "Supervisor can edit and approve"
+    },
+    "TS_ALT_03": {
+      "test_name": "Employee creates timesheet for multiple projects and activities",
+      "category": "alternative_flow",
+      "description": "Multiple project-activity combinations in one timesheet",
       "test_data": {
         "rows": [
-          {"project": "ACME Ltd", "activity": "Development"},
-          {"project": "ASF - Phase 1", "activity": "Testing"},
-          {"project": "Coke - Phase 1", "activity": "Design"}
-        ]
+          {
+            "project": "ACME Ltd",
+            "activity": "Development",
+            "hours": {"monday": "4", "tuesday": "4", "wednesday": "4"}
+          },
+          {
+            "project": "ASF - Phase 1",
+            "activity": "Testing",
+            "hours": {"monday": "4", "tuesday": "4", "wednesday": "4"}
+          },
+          {
+            "project": "Coke - Phase 1",
+            "activity": "Design",
+            "hours": {"thursday": "8", "friday": "8"}
+          }
+        ],
+        "expected_status": "Approved"
       },
-      "expected_result": "All rows added successfully with different projects"
+      "expected_result": "Multiple projects submitted and approved"
     },
-    "TS_TC37": {
-      "test_name": "Add duplicate project-activity row",
-      "category": "negative",
-      "description": "Attempt to add row with same project-activity combination",
+    "TS_VAL_01": {
+      "test_name": "Employee enters overlapping hours in same day",
+      "category": "validation",
+      "description": "Validation: Cannot enter overlapping time slots",
+      "test_data": {
+        "rows": [
+          {
+            "project": "ACME Ltd",
+            "activity": "Development",
+            "hours": {"monday": "10"}
+          },
+          {
+            "project": "ASF - Phase 1",
+            "activity": "Testing",
+            "hours": {"monday": "8"}
+          }
+        ],
+        "total_monday_hours": "18",
+        "max_allowed": "24"
+      },
+      "expected_error": "Total hours for Monday exceed 24 hours",
+      "expected_result": "Warning or error for excessive hours in one day"
+    },
+    "TS_VAL_02": {
+      "test_name": "Employee submits incomplete timesheet",
+      "category": "validation",
+      "description": "Validation: Cannot submit timesheet without hours",
       "test_data": {
         "project": "ACME Ltd",
-        "activity": "Development"
+        "activity": "Development",
+        "hours": {}
       },
-      "expected_error": "Duplicate Row",
-      "expected_result": "Error message or blocked from adding duplicate"
+      "expected_error": "No hours entered",
+      "expected_result": "Submission blocked - timesheet has no hours"
     },
-    "TS_TC38": {
-      "test_name": "Add row with unassigned project",
-      "category": "negative",
-      "description": "Verify unassigned projects don't appear in dropdown",
+    "TS_VAL_03": {
+      "test_name": "Employee creates timesheet for unassigned project",
+      "category": "validation",
+      "description": "Validation: Cannot add project employee is not assigned to",
       "test_data": {
         "project": "Unassigned Project",
         "activity": "Development"
       },
-      "expected_result": "Project not available in dropdown"
+      "expected_error": "Project not available",
+      "expected_result": "Project does not appear in dropdown"
     },
-    "TS_TC39": {
-      "test_name": "Verify activity dropdown filters by project",
+    "TS_VAL_04": {
+      "test_name": "Verify weekends and holidays are marked grey",
+      "category": "validation",
+      "description": "GUI: Weekend/holiday days should be visually distinct",
+      "test_data": {
+        "check_weekend": true,
+        "expected_weekend_days": ["Sat", "Sun"]
+      },
+      "expected_result": "Weekend columns marked differently"
+    },
+    "TS_VAL_05": {
+      "test_name": "Employee cannot approve own timesheet",
+      "category": "validation",
+      "description": "Security: Employee should not see approve button for own timesheet",
+      "test_data": {
+        "project": "ACME Ltd",
+        "activity": "Development",
+        "hours": {"monday": "8", "tuesday": "8"}
+      },
+      "expected_result": "Approve button not visible to employee"
+    },
+    "TS_PERM_01": {
+      "test_name": "ESS User cannot view other employees' timesheets",
+      "category": "permission",
+      "description": "Security: Employee cannot access Employee Timesheets page",
+      "test_data": {
+        "role": "ESS User",
+        "restricted_page": "Employee Timesheets"
+      },
+      "expected_result": "Access denied or page not visible"
+    },
+    "TS_PERM_02": {
+      "test_name": "Supervisor only sees subordinates' timesheets",
+      "category": "permission",
+      "description": "Permission: Supervisor can only view/approve assigned employees",
+      "test_data": {
+        "role": "Supervisor",
+        "can_see": "subordinates_only"
+      },
+      "expected_result": "Only subordinate timesheets visible"
+    },
+    "TS_PERM_03": {
+      "test_name": "Admin can view all timesheets",
+      "category": "permission",
+      "description": "Permission: Admin has access to all employee timesheets",
+      "test_data": {
+        "role": "Admin",
+        "can_see": "all_employees"
+      },
+      "expected_result": "All timesheets visible to admin"
+    },
+    "TS_GUI_01": {
+      "test_name": "Verify timesheet grid displays 7 day columns",
       "category": "gui",
-      "description": "Verify activity dropdown shows only activities for selected project",
+      "description": "GUI: Timesheet grid shows Mon-Sun columns",
       "test_data": {
-        "project": "ACME Ltd"
+        "expected_columns": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
       },
-      "expected_result": "Activity dropdown shows only relevant activities"
+      "expected_result": "All 7 day columns visible"
     },
-    "TS_TC40": {
-      "test_name": "Fill hours with integer value (8.0)",
-      "category": "positive",
-      "description": "Enter integer hours, verify cell saved and totals updated",
-      "test_data": {
-        "project": "ACME Ltd",
-        "activity": "Development",
-        "monday": "8"
-      },
-      "expected_result": "Hours saved, row total and column total updated correctly"
-    },
-    "TS_TC41": {
-      "test_name": "Fill hours with decimal value (8.5)",
-      "category": "positive",
-      "description": "Enter decimal hours, verify cell saved and totals updated",
-      "test_data": {
-        "project": "ACME Ltd",
-        "activity": "Development",
-        "monday": "8.5",
-        "tuesday": "7.5"
-      },
-      "expected_result": "Decimal hours saved, totals calculated correctly"
-    },
-    "TS_TC42": {
-      "test_name": "Fill hours with time format (8:30)",
-      "category": "positive",
-      "description": "Enter hours in time format, verify converted to decimal",
-      "test_data": {
-        "project": "ACME Ltd",
-        "activity": "Development",
-        "monday": "8:30"
-      },
-      "expected_result": "Time format converted to 8.5 hours"
-    },
-    "TS_TC43": {
-      "test_name": "Fill hours with zero (0)",
-      "category": "positive",
-      "description": "Enter zero hours, verify cell saved",
-      "test_data": {
-        "project": "ACME Ltd",
-        "activity": "Development",
-        "monday": "0"
-      },
-      "expected_result": "Zero hours saved successfully"
-    },
-    "TS_TC44": {
-      "test_name": "Fill hours for multiple days with totals verification",
-      "category": "positive",
-      "description": "Fill hours for multiple days, verify row/column/grand totals",
-      "test_data": {
-        "project": "ACME Ltd",
-        "activity": "Development",
-        "monday": "8",
-        "tuesday": "7.5",
-        "wednesday": "8",
-        "thursday": "6",
-        "friday": "8.5",
-        "expected_row_total": "38",
-        "expected_grand_total": "38"
-      },
-      "expected_result": "All totals calculated correctly"
-    },
-    "TS_TC45": {
-      "test_name": "Fill hours with negative value (-5)",
+    "TS_NEGATIVE_01": {
+      "test_name": "Enter negative hours",
       "category": "negative",
-      "description": "Enter negative hours, verify error message",
+      "description": "Validation: Negative hours should be rejected",
       "test_data": {
         "project": "ACME Ltd",
         "activity": "Development",
-        "monday": "-5"
+        "hours": {"monday": "-5"}
       },
       "expected_error": "Should be a positive number",
-      "expected_result": "Error message 'Invalid' or 'Should be a positive number'"
+      "expected_result": "Error message displayed"
     },
-    "TS_TC46": {
-      "test_name": "Fill hours exceeding 24 (25)",
+    "TS_NEGATIVE_02": {
+      "test_name": "Enter hours exceeding 24 for one day",
       "category": "negative",
-      "description": "Enter hours > 24, verify error/warning message",
+      "description": "Validation: Hours > 24 in one day should show error",
       "test_data": {
         "project": "ACME Ltd",
         "activity": "Development",
-        "monday": "25"
+        "hours": {"monday": "25"}
       },
       "expected_error": "Should not exceed 24",
-      "expected_result": "Error or warning message displayed"
+      "expected_result": "Error or warning displayed"
     },
-    "TS_TC47": {
-      "test_name": "Fill hours with non-numeric value (abc)",
+    "TS_NEGATIVE_03": {
+      "test_name": "Enter non-numeric characters",
       "category": "negative",
-      "description": "Enter non-numeric characters, verify error message",
+      "description": "Validation: Non-numeric input should be rejected",
       "test_data": {
         "project": "ACME Ltd",
         "activity": "Development",
-        "monday": "abc"
+        "hours": {"monday": "abc"}
       },
       "expected_error": "Invalid",
-      "expected_result": "Error message 'Invalid' displayed"
+      "expected_result": "Invalid input error"
     },
-    "TS_TC48": {
-      "test_name": "Fill hours with 3 decimal places (8.125)",
-      "category": "boundary",
-      "description": "Enter hours with 3 decimals, test rounding behavior",
-      "test_data": {
-        "project": "ACME Ltd",
-        "activity": "Development",
-        "monday": "8.125",
-        "expected_value": "8.13"
-      },
-      "expected_result": "Value rounded to 2 decimal places (8.13 or 8.12)"
-    },
-    "TS_TC49": {
-      "test_name": "Fill total exceeding 60 hours per week",
-      "category": "boundary",
-      "description": "Enter total hours > 60 for week, verify warning",
-      "test_data": {
-        "project": "ACME Ltd",
-        "activity": "Development",
-        "monday": "12",
-        "tuesday": "12",
-        "wednesday": "12",
-        "thursday": "12",
-        "friday": "13",
-        "total": "61"
-      },
-      "expected_warning": "Total hours exceed recommended limit",
-      "expected_result": "Warning message displayed for excessive hours"
-    },
-    "TS_TC50": {
-      "test_name": "Edit timesheet with status 'Not Submitted'",
-      "category": "positive",
-      "description": "Edit timesheet that is not submitted",
-      "test_data": {
-        "status": "Not Submitted",
-        "project": "ACME Ltd",
-        "activity": "Development",
-        "original_hours": "8",
-        "updated_hours": "6"
-      },
-      "expected_result": "Timesheet edited successfully"
-    },
-    "TS_TC51": {
-      "test_name": "Edit timesheet with status 'Submitted'",
+    "TS_NEGATIVE_04": {
+      "test_name": "Supervisor rejects without comment",
       "category": "negative",
-      "description": "Attempt to edit submitted timesheet",
+      "description": "Validation: Comment should be required for rejection",
       "test_data": {
-        "status": "Submitted",
-        "project": "ACME Ltd",
-        "activity": "Development"
-      },
-      "expected_result": "Timesheet locked, cannot edit"
-    },
-    "TS_TC52": {
-      "test_name": "Edit timesheet with status 'Rejected'",
-      "category": "positive",
-      "description": "Edit rejected timesheet",
-      "test_data": {
-        "status": "Rejected",
-        "project": "ACME Ltd",
-        "activity": "Development",
-        "updated_hours": "7"
-      },
-      "expected_result": "Timesheet can be edited after rejection"
-    },
-    "TS_TC53": {
-      "test_name": "Submit timesheet with valid hours",
-      "category": "positive",
-      "description": "Submit timesheet with valid hours",
-      "test_data": {
-        "project": "ACME Ltd",
-        "activity": "Development",
-        "monday": "8",
-        "tuesday": "8",
-        "wednesday": "8",
-        "thursday": "8",
-        "friday": "8"
-      },
-      "expected_result": "Status changed to 'Submitted', timesheet locked"
-    },
-    "TS_TC54": {
-      "test_name": "Submit empty timesheet",
-      "category": "negative",
-      "description": "Attempt to submit timesheet with no hours",
-      "test_data": {
-        "project": "ACME Ltd",
-        "activity": "Development",
-        "monday": "",
-        "tuesday": "",
-        "wednesday": ""
-      },
-      "expected_error": "No timesheet entries to submit",
-      "expected_result": "Error message, submission blocked"
-    },
-    "TS_TC55": {
-      "test_name": "Submit timesheet with validation errors",
-      "category": "negative",
-      "description": "Attempt to submit timesheet with invalid data",
-      "test_data": {
-        "project": "ACME Ltd",
-        "activity": "Development",
-        "monday": "abc"
-      },
-      "expected_error": "Please correct validation errors",
-      "expected_result": "Error message, submission blocked"
-    },
-    "TS_TC56": {
-      "test_name": "Withdraw submitted timesheet",
-      "category": "positive",
-      "description": "Withdraw a submitted timesheet",
-      "test_data": {
-        "status": "Submitted",
-        "action": "reset"
-      },
-      "expected_result": "Status changed to 'Not Submitted', timesheet unlocked"
-    },
-    "TS_TC57": {
-      "test_name": "Supervisor approve valid timesheet",
-      "category": "positive",
-      "description": "Supervisor approves a valid submitted timesheet",
-      "test_data": {
-        "status": "Submitted",
-        "action": "approve"
-      },
-      "expected_result": "Status changed to 'Approved'"
-    },
-    "TS_TC58": {
-      "test_name": "Supervisor reject timesheet with comment",
-      "category": "positive",
-      "description": "Supervisor rejects timesheet with rejection comment",
-      "test_data": {
-        "status": "Submitted",
-        "action": "reject",
-        "comment": "Hours not matching project plan"
-      },
-      "expected_result": "Status changed to 'Rejected', comment saved"
-    },
-    "TS_TC59": {
-      "test_name": "Supervisor reject timesheet without comment",
-      "category": "negative",
-      "description": "Attempt to reject timesheet without comment",
-      "test_data": {
-        "status": "Submitted",
         "action": "reject",
         "comment": ""
       },
       "expected_error": "Required",
-      "expected_result": "Error message 'Required' for comment field"
+      "expected_result": "Comment field validation error"
     },
-    "TS_TC60": {
-      "test_name": "User approve own timesheet (security test)",
-      "category": "negative",
-      "description": "Attempt to approve own timesheet",
+    "TS_STATUS_01": {
+      "test_name": "Verify status changes: Not Submitted → Submitted → Approved",
+      "category": "status_flow",
+      "description": "Track status progression through workflow",
       "test_data": {
-        "status": "Submitted",
-        "action": "approve",
-        "is_own_timesheet": true
+        "project": "ACME Ltd",
+        "activity": "Development",
+        "hours": {"monday": "8", "tuesday": "8"},
+        "status_progression": [
+          "Not Submitted",
+          "Submitted",
+          "Approved"
+        ]
       },
-      "expected_error": "Not Allowed",
-      "expected_result": "Error or action blocked (security test)"
+      "expected_result": "Status changes correctly at each step"
     },
-    "TS_TC61": {
-      "test_name": "Approve timesheet with status 'Not Submitted'",
-      "category": "negative",
-      "description": "Attempt to approve timesheet that is not submitted",
+    "TS_STATUS_02": {
+      "test_name": "Verify status changes: Submitted → Rejected → Submitted → Approved",
+      "category": "status_flow",
+      "description": "Track status with rejection in flow",
+      "test_data": {
+        "project": "ACME Ltd",
+        "activity": "Development",
+        "hours": {"monday": "8"},
+        "rejection_comment": "Please add more details",
+        "status_progression": [
+          "Not Submitted",
+          "Submitted",
+          "Rejected",
+          "Not Submitted",
+          "Submitted",
+          "Approved"
+        ]
+      },
+      "expected_result": "Status handles rejection and resubmission"
+    },
+    "TS_EDIT_01": {
+      "test_name": "Edit timesheet with status Not Submitted",
+      "category": "edit",
+      "description": "Employee can edit timesheet before submission",
       "test_data": {
         "status": "Not Submitted",
-        "action": "approve"
+        "original_hours": {"monday": "6"},
+        "updated_hours": {"monday": "8", "tuesday": "8"}
       },
-      "expected_error": "Timesheet must be submitted first",
-      "expected_result": "Error message or action blocked"
+      "expected_result": "Edit successful for Not Submitted timesheet"
     },
-    "TS_TC62": {
-      "test_name": "Employee view rejected timesheet comment",
-      "category": "positive",
-      "description": "Employee views rejection comment on rejected timesheet",
+    "TS_EDIT_02": {
+      "test_name": "Cannot edit timesheet with status Submitted",
+      "category": "edit",
+      "description": "Employee cannot edit after submission",
+      "test_data": {
+        "status": "Submitted"
+      },
+      "expected_result": "Timesheet locked, Edit button not available"
+    },
+    "TS_EDIT_03": {
+      "test_name": "Edit timesheet with status Rejected",
+      "category": "edit",
+      "description": "Employee can edit rejected timesheet",
       "test_data": {
         "status": "Rejected",
-        "comment": "Hours not matching project plan"
+        "updated_hours": {"monday": "8", "tuesday": "8"}
       },
-      "expected_result": "Rejection comment visible to employee"
-    },
-    "TS_TC63": {
-      "test_name": "Verify timesheet grid responsive and scrollable",
-      "category": "gui",
-      "description": "Verify timesheet grid is responsive and scrolls properly",
-      "test_data": {
-        "viewport": "1920x1080"
-      },
-      "expected_result": "Grid responsive, scrolls properly, all elements visible"
+      "expected_result": "Edit successful for Rejected timesheet"
     }
   }
 }
