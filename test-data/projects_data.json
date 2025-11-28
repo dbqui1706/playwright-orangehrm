@@ -1,0 +1,141 @@
+{
+  "test_suite": "Projects Module - Projects and Activities",
+  "description": "Test data for Project and Activity management in Time module",
+  "test_cases": {
+    "PRJ_TC01": {
+      "test_name": "Add project with required fields",
+      "category": "positive",
+      "test_data": {
+        "project_name": "Website Redesign",
+        "customer_name": "ACME Ltd",
+        "description": ""
+      }
+    },
+    "PRJ_TC02": {
+      "test_name": "Add project with all fields",
+      "category": "positive",
+      "test_data": {
+        "project_name": "Mobile App Development",
+        "customer_name": "Apache Software Foundation",
+        "project_admin": "Admin",
+        "description": "Development of cross-platform mobile application"
+      }
+    },
+    "PRJ_TC03": {
+      "test_name": "Add project with multiple admins",
+      "category": "positive",
+      "test_data": {
+        "project_name": "Cloud Migration",
+        "customer_name": "The Coca-Cola Company",
+        "description": "Migrate infrastructure to cloud"
+      }
+    },
+    "PRJ_TC04": {
+      "test_name": "Empty project name validation",
+      "category": "negative",
+      "test_data": {
+        "project_name": "",
+        "customer_name": "ACME Ltd",
+        "description": "Test project"
+      },
+      "expected_error": "Required"
+    },
+    "PRJ_TC05": {
+      "test_name": "Missing customer validation",
+      "category": "negative",
+      "test_data": {
+        "project_name": "Test Project",
+        "customer_name": "",
+        "description": "Missing customer"
+      },
+      "expected_error": "Required"
+    },
+    "PRJ_TC06": {
+      "test_name": "Project name max length (50 chars)",
+      "category": "boundary",
+      "test_data": {
+        "project_name": "12345678901234567890123456789012345678901234567890",
+        "customer_name": "ACME Ltd",
+        "description": "Boundary test for max length"
+      }
+    },
+    "PRJ_TC07": {
+      "test_name": "Project name exceeding max length",
+      "category": "negative",
+      "test_data": {
+        "project_name": "123456789012345678901234567890123456789012345678901",
+        "customer_name": "ACME Ltd",
+        "description": "Exceeds 50 character limit"
+      },
+      "expected_error": "Should not exceed 50 characters"
+    },
+    "PRJ_TC08": {
+      "test_name": "Duplicate project name",
+      "category": "negative",
+      "test_data": {
+        "project_name": "Website Redesign",
+        "customer_name": "ACME Ltd",
+        "description": "Duplicate project test"
+      },
+      "expected_error": "Already exists"
+    },
+    "PRJ_TC09": {
+      "test_name": "Special characters in project name",
+      "category": "discovery",
+      "test_data": {
+        "project_name": "Project@#$%^&*()_+",
+        "customer_name": "ACME Ltd",
+        "description": "Testing special characters"
+      }
+    },
+    "ACT_TC01": {
+      "test_name": "Add activity with valid name for project",
+      "category": "positive",
+      "description": "Verify that an activity can be added with valid name for a project",
+      "test_data": {
+        "activity_name": "Development",
+        "project_name": "Website Redesign",
+        "customer_name": "ACME Ltd"
+      },
+      "expected_result": "Activity is successfully created and saved"
+    },
+    "ACT_TC02": {
+      "test_name": "Add activity with empty name",
+      "category": "negative",
+      "description": "Verify validation when activity name is left empty",
+      "test_data": {
+        "activity_name": "",
+        "project_name": "Website Redesign",
+        "customer_name": "ACME Ltd"
+      },
+      "expected_error": "Required",
+      "expected_result": "Error message 'Required' is displayed, form is not submitted"
+    },
+    "ACT_TC03": {
+      "test_name": "Add activity with name exceeding max length",
+      "category": "negative",
+      "description": "Verify validation when activity name exceeds maximum length (100 chars)",
+      "test_data": {
+        "activity_name": "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890A",
+        "project_name": "Website Redesign",
+        "customer_name": "ACME Ltd"
+      },
+      "expected_error": "Should not exceed 100 characters",
+      "expected_result": "Error validation message or input is truncated to 100 characters",
+      "notes": "Activity name is 101 characters"
+    },
+    "ACT_TC04": {
+      "test_name": "Add duplicate activity name in same project",
+      "category": "negative",
+      "description": "Verify validation when attempting to create activity with duplicate name in same project",
+      "test_data": {
+        "activity_name": "Development",
+        "project_name": "Website Redesign",
+        "customer_name": "ACME Ltd"
+      },
+      "expected_error": "Already exists",
+      "expected_result": "Error message 'Already exists' for duplicate activity name",
+      "notes": "This test creates the activity first, then tries to create it again with same name"
+    }
+  }
+}

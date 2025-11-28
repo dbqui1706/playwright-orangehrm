@@ -1,0 +1,52 @@
+{
+  "data": [
+    {
+      "id": 7,
+      "name": "ACME Ltd",
+      "description": "Leading apparel manufacturing chain.",
+      "deleted": false
+    },
+    {
+      "id": 1,
+      "name": "Apache Software Foundation",
+      "description": "non-profit corporation to support Apache software projects",
+      "deleted": false
+    },
+    {
+      "id": 5,
+      "name": "FreeWave Technologies, Inc.",
+      "description": "Its wireless data radios are utilized in industrial, government and defense, scientific, and commercial applications",
+      "deleted": false
+    },
+    {
+      "id": 4,
+      "name": "Fresh Books Software Ltd",
+      "description": "",
+      "deleted": false
+    },
+    {
+      "id": 6,
+      "name": "Global Corp and Co",
+      "description": "Global Corp introduces itself as a leading manufacturer and exporter of a large number of products catering to high precision equipment, Scientific Laboratory Equipments & Institutional Health Care Products.",
+      "deleted": false
+    },
+    {
+      "id": 8,
+      "name": "Internal",
+      "description": "",
+      "deleted": false
+    },
+    {
+      "id": 3,
+      "name": "The Coca-Cola Company",
+      "description": "Multinational beverage corporation and manufacturer",
+      "deleted": false
+    },
+    {
+      "id": 9,
+      "name": "The Priceline Group",
+      "description": "American-based provider of travel and related online services to consumers",
+      "deleted": false
+    }
+  ]
+}

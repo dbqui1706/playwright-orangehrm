@@ -1,0 +1,70 @@
+{
+  "data": [
+    {
+      "id": 2,
+      "name": "ACME Ltd",
+      "description": null,
+      "deleted": false
+    },
+    {
+      "id": 3,
+      "name": "ASF - Phase 1",
+      "description": null,
+      "deleted": false
+    },
+    {
+      "id": 7,
+      "name": "Coke - Phase 1",
+      "description": null,
+      "deleted": false
+    },
+    {
+      "id": 5,
+      "name": "Fresh Books Software Ltd - Phase I",
+      "description": null,
+      "deleted": false
+    },
+    {
+      "id": 6,
+      "name": "FWT - Phase 1",
+      "description": null,
+      "deleted": false
+    },
+    {
+      "id": 11,
+      "name": "General HR Tasks",
+      "description": null,
+      "deleted": false
+    },
+    {
+      "id": 1,
+      "name": "Global Software phase - 1",
+      "description": null,
+      "deleted": false
+    },
+    {
+      "id": 4,
+      "name": "Global Software phase - 2",
+      "description": null,
+      "deleted": false
+    },
+    {
+      "id": 8,
+      "name": "Priceline Group - Phase 1",
+      "description": null,
+      "deleted": false
+    },
+    {
+      "id": 9,
+      "name": "Recruitment",
+      "description": null,
+      "deleted": false
+    },
+    {
+      "id": 10,
+      "name": "Training and Development",
+      "description": null,
+      "deleted": false
+    }
+  ]
+}

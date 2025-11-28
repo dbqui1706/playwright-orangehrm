@@ -1,0 +1,26 @@
+# pycache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pdb
+
+
+# virtual environments
+venv/
+env/
+
+# env files
+.env
+.env.*
+
+# folders
+
+.claude/
+.idea/
+.vscode/
+
+MIGRATION_GUIDE.md
+
+# pytest
+.pytest_cache/

@@ -1,0 +1,109 @@
+{
+  "test_suite": "Customers Module",
+  "description": "Test data for Customer management in Time module",
+  "test_cases": {
+    "CUST_TC01": {
+      "test_name": "Add customer with valid name and description",
+      "category": "positive",
+      "test_data": {
+        "customer_name": "ABC Corporation",
+        "description": "Leading software development company specializing in enterprise solutions"
+      },
+      "expected_result": "Success message displayed and customer appears in list"
+    },
+    "CUST_TC02": {
+      "test_name": "Add customer with name only (empty description)",
+      "category": "positive",
+      "test_data": {
+        "customer_name": "XYZ Technologies",
+        "description": ""
+      },
+      "expected_result": "Success message displayed, description is optional"
+    },
+    "CUST_TC03": {
+      "test_name": "Add customer with empty name",
+      "category": "negative",
+      "test_data": {
+        "customer_name": "",
+        "description": "Testing empty name validation"
+      },
+      "expected_error": "Required",
+      "expected_result": "Form is not submitted, Required error displayed"
+    },
+    "CUST_TC04": {
+      "test_name": "Add customer with name exceeding 50 characters",
+      "category": "negative",
+      "test_data": {
+        "customer_name": "123456789012345678901234567890123456789012345678901",
+        "description": "Testing name length validation - 51 characters"
+      },
+      "expected_error": "Should not exceed 50 characters",
+      "expected_result": "Validation error or input truncated to 50 characters",
+      "notes": "Name is exactly 51 characters to exceed the 50 char limit"
+    },
+    "CUST_TC05": {
+      "test_name": "Add customer with duplicate name",
+      "category": "negative",
+      "test_data": {
+        "customer_name": "ABC Corporation",
+        "description": "Attempting to create duplicate customer"
+      },
+      "expected_error": "Already exists",
+      "expected_result": "Error message indicating customer name already exists",
+      "notes": "This test requires CUST_TC01 to be executed first to create the initial customer"
+    },
+    "CUST_TC06": {
+      "test_name": "Add customer with special characters in name",
+      "category": "discovery",
+      "test_data": {
+        "customer_name": "Customer<>&Test",
+        "description": "Testing special character handling"
+      },
+      "expected_result": "Discover actual system behavior for special characters",
+      "notes": "Exploratory test to determine if system accepts, rejects, or escapes special chars like <, >, &"
+    },
+    "CUST_TC07": {
+      "test_name": "Add customer with name at boundary (exactly 50 chars)",
+      "category": "boundary",
+      "test_data": {
+        "customer_name": "12345678901234567890123456789012345678901234567890",
+        "description": "Boundary test for maximum allowed length"
+      },
+      "expected_result": "Success - customer created with exactly 50 characters",
+      "notes": "Name is exactly 50 characters - testing the boundary condition"
+    },
+    "CUST_TC08": {
+      "test_name": "Add customer with various special characters",
+      "category": "discovery",
+      "test_data": {
+        "customer_name": "Test@#$%Company",
+        "description": "Testing multiple special characters"
+      },
+      "expected_result": "Discover how system handles various special characters",
+      "notes": "Additional discovery test for special characters"
+    },
+    "CUST_TC09": {
+      "test_name": "Add customer with leading/trailing spaces",
+      "category": "discovery",
+      "test_data": {
+        "customer_name": "  Trimmed Customer  ",
+        "description": "Testing space trimming behavior"
+      },
+      "expected_result": "Discover if system trims spaces or accepts them as-is",
+      "notes": "Testing data sanitization"
+    },
+    "CUST_TC10": {
+      "test_name": "Add customer with numeric name only",
+      "category": "discovery",
+      "test_data": {
+        "customer_name": "12345",
+        "description": "Customer with purely numeric name"
+      },
+      "expected_result": "Discover if numeric-only names are accepted",
+      "notes": "Edge case testing"
+    }
+  },
+  "prerequisites": {
+    "note": "Some test cases depend on others. TC05 requires TC01 to be executed first."
+  }
+}
