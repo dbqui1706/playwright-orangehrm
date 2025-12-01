@@ -2,7 +2,7 @@
 import logging
 from playwright.sync_api import Page
 from pages.base import BasePage
-
+from config import BASE_URL
 logger = logging.getLogger(__name__)
 
 
@@ -10,7 +10,7 @@ class ActivityPage(BasePage):
     """Page object for managing Activities in Time module."""
 
     # URL
-    PROJECT_LIST_URL = "/web/index.php/time/viewProjects"
+    PROJECT_LIST_URL = "time/viewProjects"
 
     # Locators - Project Actions
     EDIT_PROJECT_BUTTON = "//button[@class='oxd-icon-button oxd-table-cell-action-space']//i[contains(@class, 'bi-pencil')]"
@@ -20,8 +20,8 @@ class ActivityPage(BasePage):
     ADD_ACTIVITY_BUTTON = "//h6[text()='Activities']/following::button[contains(., 'Add')][1]"
 
     # Locators - Add/Edit Activity Form
-    ACTIVITY_NAME_INPUT = "//*[@id='app']/div[1]/div[2]/div[2]/div/div[2]/div[5]/div/div/div/form/div[1]/div/div[2]/input"
-    SAVE_BUTTON = "//*[@id='app']/div[1]/div[2]/div[2]/div/div[2]/div[5]/div/div/div/form/div[2]/button[2]"
+    ACTIVITY_NAME_INPUT = "//*[@id='app']/div[2]/div[2]/div[2]/div/div[2]/div[5]/div/div/div/form/div[1]/div/div[2]/input"
+    SAVE_BUTTON = "//*[@id='app']/div[2]/div[2]/div[2]/div/div[2]/div[5]/div/div/div/form/div[2]/button[2]"
     CANCEL_BUTTON = "button:has-text('Cancel')"
 
     # Locators - Validation Messages
@@ -29,7 +29,8 @@ class ActivityPage(BasePage):
     ERROR_MESSAGE_REQUIRED = "//span[contains(@class, 'oxd-input-field-error-message') and text()='Required']"
     ERROR_MESSAGE_DUPLICATE = "//span[contains(@class, 'oxd-input-field-error-message') and text()='Already exists']"
     ERROR_MESSAGE_EXCEEDS_LIMIT = "//span[contains(@class, 'oxd-input-field-error-message') and contains(text(), 'Should not exceed')]"
-
+    # ERROR_MESSAGE_ACTIVITY_EXCEEDS_LIMIT = "//span[contains(@class, 'oxd-text oxd-text--span oxd-input-field-error-message oxd-input-group__message') and contains(text(), 'Should not exceed 100 characters')]"
+    ERROR_MESSAGE_ACTIVITY_EXCEEDS_LIMIT = "//*[@id='app']/div[2]/div[2]/div[2]/div/div[2]/div[5]/div/div/div/form/div[1]/div/span"
     # Locators - Success Message
     SUCCESS_MESSAGE = ".oxd-toast-content--success"
     SUCCESS_MESSAGE_TEXT = "//p[contains(@class, 'oxd-text--toast-message') and text()='Successfully Saved']"
@@ -55,7 +56,7 @@ class ActivityPage(BasePage):
     def navigate_to_project_list(self):
         """Navigate to Project list page."""
         logger.info("Navigating to Project list page")
-        full_url = self.page.url.split('/web')[0] + self.PROJECT_LIST_URL
+        full_url = BASE_URL + self.PROJECT_LIST_URL
         self.page.goto(full_url)
         self.page.wait_for_load_state('networkidle')
 
@@ -118,8 +119,6 @@ class ActivityPage(BasePage):
             activity_name: Activity name
         """
         logger.info(f"Adding activity '{activity_name}' to project '{project_name}'")
-        # self.navigate_to_project_list()
-        # self.search_and_edit_project(project_name)
         self.click_add_activity()
         self.enter_activity_name(activity_name)
         self.click_save()
@@ -168,6 +167,14 @@ class ActivityPage(BasePage):
         """
         return self._is_element_visible(self.ERROR_MESSAGE_EXCEEDS_LIMIT, timeout=3)
 
+    def is_activity_exceeds_limit_error_visible(self) -> bool:
+        """Check if 'Should not exceed 100 characters' error message is visible.
+
+        Returns:
+            bool: True if activity exceeds limit error is visible
+        """
+        return self._is_element_visible(self.ERROR_MESSAGE_ACTIVITY_EXCEEDS_LIMIT, timeout=3)
+
     def get_activity_name_input_value(self) -> str:
         """Get the current value in the activity name input field.
 
@@ -213,3 +220,10 @@ class ActivityPage(BasePage):
             if self._is_element_visible(self.CONFIRM_DELETE_BUTTON, timeout=2):
                 self._click(self.CONFIRM_DELETE_BUTTON)
                 self.page.wait_for_timeout(2000)
+
+    def scroll_to_activity_list(self):
+        """Scroll to the activity list section."""
+        logger.info("Scrolling to activity list section")
+        self.page.wait_for_timeout(1000)
+        self.page.evaluate("window.scrollBy(0, 500);")
+        self.page.wait_for_timeout(1000)

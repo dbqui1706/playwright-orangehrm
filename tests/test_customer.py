@@ -163,7 +163,7 @@ class TestCustomer:
         """TC06: Add customer with special characters in name.
 
         Test Case ID: TC06
-        Description: Verify behavior when customer name contains special characters (<, >, &)
+        Description: Verify behavior when customer name contains special characters (<, >, &) and scripts
         Expected: Test actual system behavior - may accept, reject, or escape special chars
         """
         # Arrange
@@ -178,4 +178,5 @@ class TestCustomer:
         # Wait for system response
         time.sleep(2)
 
-        # Assert - Check if customer was added or error shown
+        # If success then Website don't block special characters -> Assert fail for this case
+        assert not customer_page.is_success_message_visible(), "System should not accept special characters or scripts in customer name"

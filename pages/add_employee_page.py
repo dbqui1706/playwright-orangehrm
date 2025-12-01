@@ -3,6 +3,7 @@ import logging
 import os
 import time
 from playwright.sync_api import Page
+
 from pages.base import BasePage
 
 logger = logging.getLogger(__name__)
@@ -10,6 +11,9 @@ logger = logging.getLogger(__name__)
 
 class AddEmployeePage(BasePage):
     """Page object for the Add Employee page."""
+    # Logout selectors
+    USER_DROPDOWN = '.oxd-userdropdown-tab'
+    LOGOUT_LINK = 'a:has-text("Logout")'
 
     # Selectors for Personal Details Section
     FIRST_NAME_INPUT = 'input[name="firstName"]'
@@ -200,6 +204,8 @@ class AddEmployeePage(BasePage):
         """Click the Save button."""
         logger.info("Clicking Save button")
         self._click(self.SAVE_BUTTON)
+        import time
+        time.sleep(2)  # Wait for save action to complete
 
     def click_cancel(self) -> None:
         """Click the Cancel button."""
@@ -322,6 +328,8 @@ class AddEmployeePage(BasePage):
         self.set_status_enabled(status_enabled)
         self.click_save()
 
+        self.page.wait_for_load_state('networkidle')
+
     def add_employee_full(self, first_name: str, last_name: str,
                          username: str, password: str,
                          photo_path: str = None,
@@ -364,3 +372,17 @@ class AddEmployeePage(BasePage):
         self.set_status_enabled(status_enabled)
 
         self.click_save()
+
+    def navigate_to_add_employee_page(self):
+        """Navigate to the Add Employee page."""
+        from config import BASE_URL
+        full_url = BASE_URL + "pim/addEmployee"
+        logger.info(f"Navigating to Add Employee page: {full_url}")
+        self.page.goto(full_url)
+        self.page.wait_for_load_state('networkidle')
+
+    def logout(self):
+        """Perform the logout action."""
+        self._click(self.USER_DROPDOWN)
+        self._click(self.LOGOUT_LINK)
+

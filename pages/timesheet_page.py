@@ -2,6 +2,8 @@
 import logging
 from datetime import datetime, timedelta
 from playwright.sync_api import Page
+
+from config import BASE_URL
 from pages.base import BasePage
 
 logger = logging.getLogger(__name__)
@@ -11,14 +13,15 @@ class TimesheetPage(BasePage):
     """Page object for managing Timesheets in Time module."""
 
     # URL
-    MY_TIMESHEET_URL = "/web/index.php/time/viewMyTimesheet"
-    EMPLOYEE_TIMESHEET_URL = "/web/index.php/time/viewEmployeeTimesheet"
+    MY_TIMESHEET_URL = "time/viewMyTimesheet"
+    EMPLOYEE_TIMESHEET_URL = "time/viewEmployeeTimesheet"
 
     # Locators - Navigation
     CREATE_TIMESHEET_BUTTON = "button:has-text('Create Timesheet')"
     EDIT_BUTTON = "button:has-text('Edit')"
-    SUBMIT_BUTTON = "button:has-text('Save')"
-    APPROVE_BUTTON = "button:has-text('Approve')"
+    SAVE_BUTTON = "button:has-text('Save')"
+    SUBMIT_BUTTON = "button:has-text('Submit')"
+    APPROVE_BUTTON = "button:has-text(' Approve ')"
     REJECT_BUTTON = "button:has-text('Reject')"
     RESET_BUTTON = "button:has-text('Reset')"
 
@@ -84,6 +87,14 @@ class TimesheetPage(BasePage):
     SATURDAY_COLUMN = "//th[contains(text(), 'Sat')]"
     SUNDAY_COLUMN = "//th[contains(text(), 'Sun')]"
 
+    # Locator - Employee Name
+    EMPLOYEE_NAME_LOCATOR = "//p[contains(@class, 'oxd-userdropdown-name')]"
+
+    # Locator - Employee Timesheet Search
+    EMPLOYEE_SEARCH_INPUT = "//input[@placeholder='Type for hints...']"
+    VIEW_BUTTON = "//button[contains(@class, 'oxd-button oxd-button--medium oxd-button--secondary orangehrm-left-space')]"
+
+
     def __init__(self, page: Page):
         """Initialize TimesheetPage.
 
@@ -96,14 +107,14 @@ class TimesheetPage(BasePage):
     def navigate_to_my_timesheet(self):
         """Navigate to My Timesheet page."""
         logger.info("Navigating to My Timesheet page")
-        full_url = self.page.url.split('/web')[0] + self.MY_TIMESHEET_URL
+        full_url = BASE_URL + self.MY_TIMESHEET_URL
         self.page.goto(full_url)
         self.page.wait_for_load_state('networkidle')
 
     def navigate_to_employee_timesheet(self):
         """Navigate to Employee Timesheet page (for supervisor)."""
         logger.info("Navigating to Employee Timesheet page")
-        full_url = self.page.url.split('/web')[0] + self.EMPLOYEE_TIMESHEET_URL
+        full_url = BASE_URL + self.EMPLOYEE_TIMESHEET_URL
         self.page.goto(full_url)
         self.page.wait_for_load_state('networkidle')
 
@@ -140,12 +151,14 @@ class TimesheetPage(BasePage):
             project_name: Project name to select
             row_index: Index of the row (0-based)
         """
+        # xpath = "//*[@id='app']/div[2]/div[2]/div[2]/div/form/div[2]/table/tbody/tr[1]/td[1]/div/div[2]/div/div/input"
+        # logger.info("Inputs project: {projects}", projects= self.page.locator(xpath).all())
         project_inputs = self.page.locator(self.PROJECT_INPUT).all()
         if row_index < len(project_inputs):
             input_element = project_inputs[row_index]
             # Clear và fill
             input_element.clear()
-            input_element.fill(project_name[:3])
+            input_element.fill(project_name)
 
             # Đợi dropdown load
             self.page.wait_for_timeout(1500)
@@ -451,6 +464,7 @@ class TimesheetPage(BasePage):
         """Count the number of timesheet rows present."""
         logger.info("Counting timesheet rows")
         rows = self.page.locator(self.TIMESHEET_ROWS).all()
+        logger.info(f"Total timesheet rows found: {len(rows)}")
         return len(rows)
 
     def get_last_timesheet_row(self):
@@ -555,11 +569,57 @@ class TimesheetPage(BasePage):
         project_inputs = self.page.locator(self.PROJECT_INPUT).all()
 
         if row_index >= len(project_inputs):
+            logger.warning(f"Row index {row_index} out of range for project inputs")
             return True
 
         project_value = project_inputs[row_index].input_value()
+        logger.info(f"Row index {row_index}: {project_value}")
         return not project_value or project_value.strip() == ""
 
     def is_save_successful(self):
 
         return self.page.locator(self.SUCCESS_MESSAGE).is_visible()
+
+    def save_timesheet(self):
+        """Click the Save button."""
+        logger.info("Clicking Save button")
+        self._click(self.SAVE_BUTTON)
+        self.page.wait_for_timeout(2000)
+
+    def get_employee_name(self) -> str:
+        """Get the employee name displayed on the timesheet page.
+
+        Returns:
+            str: Employee name
+        """
+        return self._get_text(self.EMPLOYEE_NAME_LOCATOR).strip() or ""
+
+    def search_employee_timesheet(self, employee_name):
+        """Search for an employee's timesheet.
+
+        Args:
+            employee_name: Name of the employee
+        """
+        logger.info(f"Searching timesheet for employee: {employee_name}")
+        # Fill employee name in search input
+        input_element = self.page.locator(self.EMPLOYEE_SEARCH_INPUT)
+        input_element.clear()
+        input_element.fill(employee_name)
+        self.page.wait_for_timeout(1500)
+
+        # Sử dụng keyboard: Arrow Down để chọn option đầu tiên, rồi Enter
+        input_element.press("ArrowDown")
+        self.page.wait_for_timeout(300)
+        input_element.press("Enter")
+        self.page.wait_for_timeout(500)
+
+    def view_employee_timesheet(self):
+        """View timesheet for a specific employee.
+
+        Args:
+            employee_name: Name of the employee
+        """
+        logger.info(f"Viewing timesheet")
+        # Click View button
+        self._click(self.VIEW_BUTTON)
+        self.page.wait_for_load_state('networkidle')

@@ -56,7 +56,7 @@
       "test_name": "Add customer with special characters in name",
       "category": "discovery",
       "test_data": {
-        "customer_name": "Customer<>&Test",
+        "customer_name": "<scr1pt>alert(1)</scr1pt>",
         "description": "Testing special character handling"
       },
       "expected_result": "Discover actual system behavior for special characters",

@@ -3,6 +3,7 @@ import logging
 import enum
 from playwright.sync_api import Page
 from pages.base import BasePage
+from config import BASE_URL
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +17,7 @@ class CustomerPage(BasePage):
     """Page object for managing Customers in Time module."""
 
     # URL
-    CUSTOMER_LIST_URL = "/web/index.php/time/viewCustomers"
+    CUSTOMER_LIST_URL = "time/viewCustomers"
 
     # Locators - Add Customer Button
     ADD_CUSTOMER_BUTTON = "button:has-text('Add')"
@@ -58,7 +59,7 @@ class CustomerPage(BasePage):
     def navigate_to_customer_page(self):
         """Navigate to Customer management page."""
         logger.info("Navigating to Customer page")
-        full_url = self.page.url.split('/web')[0] + self.CUSTOMER_LIST_URL
+        full_url = BASE_URL + self.CUSTOMER_LIST_URL
         self.page.goto(full_url)
         self.page.wait_for_load_state('networkidle')
 

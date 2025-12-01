@@ -1,16 +1,16 @@
 """Configuration file for test automation."""
 
 # Base URLs
-BASE_URL = "https://opensource-demo.orangehrmlive.com/"
+BASE_URL = "https://dbqui176-osondemand.orangehrm.com/"
 
 # Test credentials
 # ADMIN
-VALID_USERNAME = "admin"
-VALID_PASSWORD = "admin123"
+VALID_USERNAME = "Admin"
+VALID_PASSWORD = "o@M@dO1@SLj0"
 
 # Employee
-EMPLOYEE_USERNAME = "john.done"
-EMPLOYEE_PASSWORD = "admin123"
+EMPLOYEE_USERNAME = "employee-john"
+EMPLOYEE_PASSWORD = "2742003Huong!"
 
 # Wait timeouts (in seconds)
 DEFAULT_WAIT_TIMEOUT = 15

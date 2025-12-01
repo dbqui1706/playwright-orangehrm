@@ -16,8 +16,8 @@
       "category": "positive",
       "test_data": {
         "project_name": "Mobile App Development",
-        "customer_name": "Apache Software Foundation",
-        "project_admin": "Admin",
+        "customer_name": "ACME Ltd",
+        "project_admin": "Qui Dang",
         "description": "Development of cross-platform mobile application"
       }
     },
@@ -26,7 +26,7 @@
       "category": "positive",
       "test_data": {
         "project_name": "Cloud Migration",
-        "customer_name": "The Coca-Cola Company",
+        "customer_name": "ACME Ltd",
         "description": "Migrate infrastructure to cloud"
       }
     },

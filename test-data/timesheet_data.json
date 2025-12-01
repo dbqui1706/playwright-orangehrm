@@ -63,6 +63,17 @@
       },
       "expected_result": "Draft saved, edited, submitted and approved"
     },
+    "TS_NEG_01": {
+      "test_name": "Employee attempts to submit timesheet with empty record",
+      "category": "negative",
+      "description": "Employee tries to submit empty timesheet",
+      "test_data": {
+        "project": "",
+        "activity": "",
+        "hours": {}
+      },
+      "expected_result": "Submission blocked - timesheet has no records"
+    },
     "TS_ALT_01": {
       "test_name": "Employee submits, Supervisor rejects with comment, Employee resubmits",
       "category": "alternative_flow",
@@ -83,6 +94,9 @@
           "thursday": "8",
           "friday": "8"
         },
+        "expected_status_after_submit": "Submitted",
+        "expected_status_after_reject": "Rejected",
+        "expected_status_after_resubmit": "Submitted",
         "expected_final_status": "Approved"
       },
       "expected_result": "Rejection handled, resubmitted and approved"

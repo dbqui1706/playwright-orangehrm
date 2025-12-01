@@ -1,6 +1,8 @@
 """Page Object Model for Project management in OrangeHRM."""
 import logging
 from playwright.sync_api import Page
+
+from config import BASE_URL
 from pages.base import BasePage
 
 logger = logging.getLogger(__name__)
@@ -10,7 +12,7 @@ class ProjectPage(BasePage):
     """Page object for managing Projects in Time module."""
 
     # URL
-    PROJECT_LIST_URL = "/web/index.php/time/viewProjects"
+    PROJECT_LIST_URL = "time/viewProjects"
 
     # Locators - Add Project Button
     ADD_PROJECT_BUTTON = "button:has-text('Add')"
@@ -61,7 +63,7 @@ class ProjectPage(BasePage):
     def navigate_to_project_page(self):
         """Navigate to Project management page."""
         logger.info("Navigating to Project page")
-        full_url = self.page.url.split('/web')[0] + self.PROJECT_LIST_URL
+        full_url = BASE_URL + self.PROJECT_LIST_URL
         self.page.goto(full_url)
         self.page.wait_for_load_state('networkidle')
 
@@ -105,15 +107,24 @@ class ProjectPage(BasePage):
         """
         logger.info(f"Selecting project admin: {admin_name}")
         # Type in the input to trigger autocomplete
-        self._send_keys(self.PROJECT_ADMIN_INPUT, admin_name)
-        self.page.wait_for_timeout(1000)
+        input_project_admin = self.page.locator(self.PROJECT_ADMIN_INPUT)
+        input_project_admin.fill("")  # Clear existing input
+        input_project_admin.type(admin_name)  # Type first 3 chars
+        self.page.wait_for_timeout(1500)
+        # Sử dụng keyboard: Arrow Down để chọn option đầu tiên, rồi Enter
+        input_project_admin.press("ArrowDown")
+        self.page.wait_for_timeout(300)
+        input_project_admin.press("Enter")
 
-        # Select from dropdown options
-        option_locator = f"//div[@role='listbox']//div[@role='option']//span[contains(text(), '{admin_name}')]"
-        if self._is_element_visible(option_locator, timeout=3):
-            self._click(option_locator)
-        else:
-            logger.warning(f"Admin '{admin_name}' not found in dropdown")
+        logger.info(f"Successfully selected project: {admin_name}")
+        self.page.wait_for_timeout(500)
+
+        # # Select from dropdown options
+        # option_locator = f"//div[@role='listbox']//div[@role='option']//span[contains(text(), '{admin_name}')]"
+        # if self._is_element_visible(option_locator, timeout=3):
+        #     self._click(option_locator)
+        # else:
+        #     logger.warning(f"Admin '{admin_name}' not found in dropdown")
 
     def add_multiple_project_admins(self, admin_names: list):
         """Add multiple project admins.
