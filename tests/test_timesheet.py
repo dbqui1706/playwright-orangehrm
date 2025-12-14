@@ -31,13 +31,13 @@ from pages.login_page import LoginPage
 from pages.timesheet_page import TimesheetPage
 from pages.project_page import ProjectPage
 from pages.activity_page import ActivityPage
-from config import VALID_USERNAME, VALID_PASSWORD, EMPLOYEE_PASSWORD, EMPLOYEE_USERNAME
+from config import VALID_USERNAME, VALID_PASSWORD, EMPLOYEE_PASSWORD, EMPLOYEE_USERNAME, BASE_URL
 
 
 @pytest.mark.usefixtures("driver_init")
 class TestTimesheetEndToEnd:
     """End-to-end test suite for Timesheet workflow between Employee and Supervisor."""
-    LOGOUT_URL = "https://dbqui176-osondemand.orangehrm.com/auth/logout"
+    LOGOUT_URL = BASE_URL + "auth/logout"
 
     # ==================== HELPER METHODS ====================
 
@@ -272,9 +272,9 @@ class TestTimesheetEndToEnd:
 
         return project_name, activity_name, project_admin, description, username, password
 
-    # ==================== E2E TEST CASES ====================
+    # ==================== POSITIVE TESTCASE ====================
 
-    def test_e2e_01_happy_path_employee_submit_supervisor_approve(
+    def test_timesheets_01_happy_path_employee_submit_supervisor_approve(
             self,
             load_timesheet_data,
             # setup_test_project,
@@ -303,7 +303,7 @@ class TestTimesheetEndToEnd:
         - Timesheet status changes: Not Submitted → Submitted → Approved
         - Employee can see approved status
         """
-        test_data = load_timesheet_data["test_cases"]["TS_HAPPY_01"]["test_data"]
+        test_data = load_timesheet_data["test_cases"]["TIMESHEETS_01"]["test_data"]
         # project_name, activity_name, _, _, employee_username, employee_password = setup_test_project
         employee_username, employee_password, _, _ = create_mock_employee
         project_name, activity_name = test_data["project"], test_data["activity"]
@@ -356,7 +356,7 @@ class TestTimesheetEndToEnd:
         assert final_status == test_data["expected_status_after_approve"] \
             , f"Final status should be 'Approved', got '{final_status}'"
 
-    def test_e2e_02_rejection_flow_employee_resubmit_supervisor_approve(
+    def test_timesheets_02_rejection_flow_employee_resubmit_supervisor_approve(
             self,
             load_timesheet_data,
             # setup_test_project
@@ -381,7 +381,7 @@ class TestTimesheetEndToEnd:
         - Employee can edit and resubmit after rejection
         """
         # Get test data
-        test_data = load_timesheet_data["test_cases"]["TS_ALT_01"]["test_data"]
+        test_data = load_timesheet_data["test_cases"]["TIMESHEETS_02"]["test_data"]
         employee_username, employee_password, _, _ = create_mock_employee
 
         project_name, activity_name = test_data["project"], test_data["activity"]
@@ -447,9 +447,96 @@ class TestTimesheetEndToEnd:
         assert final_status == test_data["expected_final_status"], \
             f"Final status should be 'Approved', got '{final_status}'"
 
+    # [TimeSheet-4]: Kiểm tra tạo timesheet cho nhiều projects trong cùng một tuần
+    # "TIMESHEETS_04": {
+    #     "test_name": "Employee creates timesheet for multiple projects and activities",
+    #     "category": "positive",
+    #     "description": "Multiple project-activity combinations in one timesheet",
+    #     "test_data": {
+    #         "rows": [
+    #             {
+    #                 "project": "ACME Ltd",
+    #                 "activity": "Development",
+    #                 "hours": {"monday": "4", "tuesday": "4", "wednesday": "4"}
+    #             },
+    #             {
+    #                 "project": "ASF - Phase 1",
+    #                 "activity": "QA Testing",
+    #                 "hours": {"monday": "4", "tuesday": "4", "wednesday": "4"}
+    #             }
+    #         ],
+    #         "expected_status_after_submit": "Submitted",
+    #         "expected_status_after_approve": "Approved"
+    #     },
+    #     "expected_result": "Multiple projects submitted and approved"
+    # },
+    def test_timesheets_04_multiple_projects_single_week(self, load_timesheet_data, create_mock_employee):
+        """
+        Testcase: Create timesheet with multiple projects in a single week
+        Flow:
+        -----
+        Step 1: Employee logs in and creates timesheet
+        Step 2: Employee adds multiple project/activity combinations with hours
+        Step 3: Employee submits timesheet
+        Step 4: Supervisor approves timesheet
+        Step 5: Employee verifies approved status
+        Expected Result:
+        ---------------
+        - Timesheet with multiple projects is successfully submitted and approved
+        """
+        test_data = load_timesheet_data["test_cases"]["TIMESHEETS_04"]["test_data"]
+        username, password, _, _ = create_mock_employee
+
+        # STEP 1: Employee Login
+        timesheet_page = self._login_and_navigate(
+            username, password, is_employee=True
+        )
+
+        # STEP 2: Create/Edit Timesheet
+        self._create_or_edit_timesheet(timesheet_page)
+
+        # STEP 3: Add Multiple Projects/Activities
+        for i, row in enumerate(test_data["rows"]):
+            if i != 0:
+                timesheet_page.click_add_row()
+            project = row["project"]
+            activity = row["activity"]
+            hours = row["hours"]
+            row_index = self._prepare_timesheet_row(timesheet_page, project, activity)
+            self._fill_timesheet_hours(timesheet_page, hours, row_index)
+
+        timesheet_page.save_timesheet()
+        assert timesheet_page.is_save_successful(), "Timesheet save failed"
+
+        # STEP 4: Submit
+        timesheet_page.click_submit()
+        time.sleep(2)
+
+        submitted_status = timesheet_page.get_timesheet_status()
+        assert submitted_status == test_data["expected_status_after_submit"], \
+            f"Status should be 'Submitted', got '{submitted_status}'"
+        # STEP 5: Supervisor Approves
+        self._logout()
+        timesheet_page = self._login_and_navigate(
+            VALID_USERNAME, VALID_PASSWORD, is_employee=False
+        )
+        employee_name = timesheet_page.get_employee_name()
+        timesheet_page.search_employee_timesheet(employee_name)
+        timesheet_page.view_employee_timesheet()
+        timesheet_page.click_approve()
+
+        # STEP 6: Verify Approval
+        self._logout()
+        timesheet_page = self._login_and_navigate(
+            username, password, is_employee=True
+        )
+        final_status = timesheet_page.get_timesheet_status()
+        assert final_status == test_data["expected_status_after_approve"] \
+            , f"Final status should be 'Approved', got '{final_status}'"
+
 
     # ==================== NEGATIVE TESTCASE ====================
-    def test_submit_timesheet_empty_record(self, load_timesheet_data, create_mock_employee):
+    def test_timesheet_03_submit_timesheet_empty_record(self, load_timesheet_data, create_mock_employee):
         """
         Negative Testcase: Attempt to submit timesheet with empty record
 
@@ -463,7 +550,7 @@ class TestTimesheetEndToEnd:
         - Submission should be blocked
         - Appropriate error message should be displayed
         """
-        test_data = load_timesheet_data["test_cases"]["TS_NEG_01"]
+        test_data = load_timesheet_data["test_cases"]["TIMESHEETS_03"]
         username, password, _, _ = create_mock_employee
 
         # STEP 1: Employee Login
@@ -479,3 +566,91 @@ class TestTimesheetEndToEnd:
         submit_success = timesheet_page.get_timesheet_status()
         if submit_success and submit_success.strip().lower() == "submitted":
             pytest.fail(f"Expected error message '{test_data['expected_result']}', got '{submit_success}'")
+
+    # "Check feature Reset/Withdraw submitted timesheet",
+    # "category": "negative",
+    # "description": "Employee tries to reset/withdraw submitted before Supervisor review",
+    # def test_timesheet_05_reset_withdraw_submitted_timesheet(self, load_timesheet_data, create_mock_employee):
+    #     """
+    #     Negative Testcase: Employee tries to reset/withdraw submitted timesheet before Supervisor review
+    #     Flow:
+    #     -----
+    #     Step 1: Employee logs in and creates timesheet
+    #     Step 2: Employee submits timesheet
+    #     Step 3: Employee attempts to reset/withdraw the submitted timesheet
+    #     Expected Result:
+    #     ---------------
+    #     - Reset/Withdraw action should be blocked
+    #     - Appropriate error message should be displayed
+    #     """
+    #     test_data = load_timesheet_data["test_cases"]["TIMESHEETS_05"]
+    #     username, password, _, _ = create_mock_employee
+    #     # STEP 1: Employee Login
+    #     timesheet_page = self._login_and_navigate(
+    #         username, password, is_employee=True
+    #     )
+    #     # STEP 2: Create/Edit Timesheet
+    #     self._create_or_edit_timesheet(timesheet_page)
+    #     row_index = self._prepare_timesheet_row(timesheet_page, test_data["project"], test_data["activity"])
+    #     self._fill_timesheet_hours(timesheet_page, test_data["hours"], row_index)
+    #     timesheet_page.save_timesheet()
+    #     assert timesheet_page.is_save_successful(), "Timesheet save failed"
+    #     # STEP 3: Submit
+    #     timesheet_page.click_submit()
+    #     time.sleep(2)
+    #     submitted_status = timesheet_page.get_timesheet_status()
+    #     assert submitted_status == test_data["expected_status_after_submit"], \
+    #         f"Status should be 'Submitted', got '{submitted_status}'"
+    #     # STEP 4: Attempt to Reset/Withdraw
+    #     timesheet_page.click_reset_withdraw()
+    #     time.sleep(2)
+
+
+    # [TimeSheet-6]: Kiểm tra tính năng nhân viên tạo timesheet 1 project nhưng không thêm trường hours
+    # "TIMESHEETS_06": {
+    #     "test_name": "Employee creates timesheet with project without assigned time",
+    #     "category": "negative",
+    #     "description": "Employee tries to submit timesheet for project with no assigned time",
+    #     "test_data": {
+    #         "project": "ACME Ltd",
+    #         "activity": "Development"
+    #     },
+    #     "expected_result": "Save/Submit blocked - no assigned time for project"
+    # }
+    def test_timesheet_06_project_no_assigned_time(self, load_timesheet_data, create_mock_employee):
+        """
+        Negative Testcase: Employee tries to submit timesheet for project with no assigned time
+
+        Flow:
+        -----
+        Step 1: Employee logs in and creates timesheet
+        Step 2: Employee adds project/activity but leaves hours empty
+        Step 3: Employee save record
+        Step 4: Verify that submission is blocked
+
+        Expected Result:
+        ---------------
+        - Submission should be blocked
+        - Appropriate error message should be displayed
+        """
+        test_data = load_timesheet_data["test_cases"]["TIMESHEETS_06"]
+        username, password, _, _ = create_mock_employee
+
+        # STEP 1: Employee Login
+        timesheet_page = self._login_and_navigate(
+            username, password, is_employee=True
+        )
+
+        # STEP 2: Create/Edit Timesheet
+        self._create_or_edit_timesheet(timesheet_page)
+
+        # STEP 3: Add Project/Activity without hours
+        row_index = self._prepare_timesheet_row(timesheet_page, test_data["test_data"]["project"], test_data["test_data"]["activity"])
+        # Do not fill any hours
+        timesheet_page.save_timesheet()
+
+        # if save is successful --> fail the test
+        if timesheet_page.is_save_successful():
+            pytest.fail(f"Expected error message '{test_data['expected_result']}', but timesheet was saved successfully")
+        else:
+            print(f"✓ Save blocked as expected with message: '{test_data['expected_result']}'")

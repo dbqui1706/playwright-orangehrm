@@ -1,0 +1,110 @@
+## 📋 **10 TEST CASES ĐỀ XUẤT CHO TIMESHEET MODULE:**
+
+---
+
+### **🟢 POSITIVE TEST CASES (3):**
+
+**[TimeSheet-4]: Kiểm tra tạo timesheet cho nhiều projects trong cùng một tuần**
+- **Mô tả:** Nhân viên tạo timesheet với nhiều dự án khác nhau (2-3 projects) trong cùng tuần
+- **Mục đích:** Verify khả năng add multiple rows với different projects
+- **Expected:** Multiple rows được save thành công, tính tổng giờ chính xác
+
+**[TimeSheet-5]: Kiểm tra tính năng Reset/Withdraw timesheet đã submit**
+- **Mô tả:** Nhân viên submit timesheet, sau đó click Reset/Withdraw để rút lại
+- **Mục đích:** Test khả năng withdraw timesheet trước khi supervisor review
+- **Expected:** Status: Submitted → Not Submitted, có thể edit lại
+
+**[TimeSheet-6]: Kiểm tra timesheet với số giờ thập phân (decimal hours)**
+- **Mô tả:** Nhập số giờ dạng decimal như 7.5, 8.25, 4.75
+- **Mục đích:** Verify decimal input handling và calculation
+- **Expected:** System accept decimal, tính tổng chính xác (ví dụ: 7.5 + 8.25 = 15.75)
+
+---
+
+### **❌ NEGATIVE/VALIDATION TEST CASES (5):**
+
+**[TimeSheet-7]: Kiểm tra validation khi nhập số giờ âm**
+- **Mô tả:** Nhập hours = -5 hoặc -8
+- **Mục đích:** Test negative number validation
+- **Expected:** Error: "Should be a positive number", không cho save
+
+**[TimeSheet-8]: Kiểm tra validation khi nhập số giờ vượt quá 24h/ngày**
+- **Mô tả:** Nhập hours = 25 hoặc 30 cho một ngày
+- **Mục đích:** Test maximum hours per day validation
+- **Expected:** Error: "Should not exceed 24", không cho save
+
+**[TimeSheet-9]: Kiểm tra validation khi nhập format không hợp lệ (text)**
+- **Mô tả:** Nhập hours = "abc" hoặc "eight" thay vì số
+- **Mục đích:** Test input type validation
+- **Expected:** Error: "Invalid" hoặc field reject non-numeric input
+
+**[TimeSheet-10]: Kiểm tra không cho phép submit timesheet của tuần tương lai**
+- **Mô tả:** Employee tạo timesheet cho tuần sau (future week), điền giờ và submit
+- **Mục đích:** Test business rule: không submit future timesheet
+- **Expected:** Error hoặc warning: "Cannot submit future timesheet"
+
+**[TimeSheet-11]: Kiểm tra không cho phép edit timesheet đã được approved**
+- **Mô tả:** Sau khi Supervisor approve, Employee cố gắng click Edit
+- **Mục đích:** Test locked status của approved timesheet
+- **Expected:** Edit button disabled hoặc hidden, không thể chỉnh sửa
+
+---
+
+### **🔍 EDGE CASE/BOUNDARY TEST CASES (2):**
+
+**[TimeSheet-12]: Kiểm tra tính năng view timesheet của tuần trước (past week)**
+- **Mô tả:** Employee navigate về past weeks để xem timesheet cũ
+- **Mục đích:** Test navigation và view past timesheets
+- **Expected:** Load được past timesheet, hiển thị đúng status (Approved/Rejected)
+
+**[TimeSheet-13]: Kiểm tra tổng giờ đúng boundary (exactly 40 hours/week)**
+- **Mô tả:** Nhập đúng 8h/ngày cho 5 ngày = 40 hours
+- **Mục đích:** Test boundary calculation và total display
+- **Expected:** Grand Total = 40.00, calculation chính xác
+
+---
+
+## 📊 **PHÂN LOẠI ĐỀ XUẤT:**
+
+| Loại | Số lượng | Test Case IDs |
+|------|----------|---------------|
+| **Positive** | 3 | TC04, TC05, TC06 |
+| **Negative/Validation** | 5 | TC07, TC08, TC09, TC10, TC11 |
+| **Edge Case/Boundary** | 2 | TC12, TC13 |
+| **TOTAL** | **10** | |
+
+---
+
+## 🎯 **COVERAGE BỔ SUNG:**
+
+Các test case này sẽ cover thêm:
+- ✅ Multiple projects handling
+- ✅ Reset/Withdraw functionality
+- ✅ Decimal hours input
+- ✅ Negative number validation
+- ✅ Max hours validation (24h/day)
+- ✅ Invalid format validation
+- ✅ Future timesheet validation
+- ✅ Approved timesheet lock
+- ✅ Past timesheet navigation
+- ✅ Boundary calculation (40h/week)
+
+---
+
+## 💡 **ƯU TIÊN THỰC HIỆN:**
+
+**HIGH Priority (nên test trước):**
+- TC07: Negative hours validation
+- TC08: Max 24h validation
+- TC11: Cannot edit approved timesheet
+- TC10: Cannot submit future timesheet
+
+**MEDIUM Priority:**
+- TC04: Multiple projects
+- TC05: Reset/Withdraw
+- TC09: Invalid format
+
+**LOW Priority:**
+- TC06: Decimal hours
+- TC12: Past timesheet view
+- TC13: Boundary 40h

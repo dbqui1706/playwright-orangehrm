@@ -26,7 +26,7 @@ class TimesheetPage(BasePage):
     RESET_BUTTON = "button:has-text('Reset')"
 
     # Locators - Timesheet Form
-    ADD_ROW_BUTTON = "//button[contains(@class, 'oxd-icon bi-plus')]"
+    ADD_ROW_BUTTON = "//button[contains(@class, 'oxd-icon-button') and .//i[contains(@class, 'oxd-icon bi-plus')]]"
     PROJECT_INPUT = "//label[text()='Project']/parent::div/following-sibling::div//input"
 
     # Activity dropdown - more specific locator
