@@ -31,7 +31,7 @@ class TimesheetPage(BasePage):
 
     # Activity dropdown - more specific locator
     # Activity is in a select dropdown, not an input field
-    ACTIVITY_DROPDOWN = "//div[contains(@class, 'oxd-select-text-input')]"
+    ACTIVITY_DROPDOWN = "//div[contains(@class, 'oxd-select-text oxd-select-text--active')]"
     ACTIVITY_DROPDOWN_TRIGGER = "//div[contains(@class, 'oxd-select-text')]"
 
     # Timesheet rows
@@ -46,7 +46,7 @@ class TimesheetPage(BasePage):
     TIME_CELL_TEMPLATE = "//input[@placeholder='0.00']"
 
     # Locators - Totals
-    ROW_TOTAL = "//div[contains(@class, 'timesheet-row-total')]"
+    ROW_TOTAL = "//tr[contains(@class, 'orangehrm-timesheet-table-body-row')]//td[last()]"
     COLUMN_TOTAL = "//div[contains(@class, 'timesheet-column-total')]"
     GRAND_TOTAL = "//div[contains(@class, 'timesheet-grand-total')]"
 
@@ -65,7 +65,7 @@ class TimesheetPage(BasePage):
     REQUIRED_ERROR_MESSAGE = ".oxd-input-field-error-message"
     ERROR_MESSAGE_REQUIRED = "//span[contains(@class, 'oxd-input-field-error-message') and text()='Required']"
     ERROR_MESSAGE_INVALID = "//span[contains(text(), 'Invalid')]"
-    ERROR_MESSAGE_POSITIVE = "//span[contains(text(), 'Should be a positive number')]"
+    ERROR_MESSAGE_HOURS = "//span[contains(@class, 'oxd-input-field-error-message') and contains(normalize-space(), 'Should Be Less Than 24')]"
     ERROR_MESSAGE_EXCEED_24 = "//span[contains(text(), 'Should not exceed 24')]"
 
     # Locators - Success/Warning Messages
@@ -75,8 +75,7 @@ class TimesheetPage(BasePage):
 
     # Locators - Week Selection
     WEEK_SELECTOR = "//input[@placeholder='yyyy-mm-dd']"
-    NEXT_WEEK_BUTTON = "//button[@class='oxd-icon-button']//i[contains(@class, 'chevron-right')]"
-    PREV_WEEK_BUTTON = "//button[@class='oxd-icon-button']//i[contains(@class, 'chevron-left')]"
+    NEXT_WEEK_BUTTON = "//button[@class='oxd-icon-button orangehrm-timeperiod-icon --next']"
 
     # Locators - Grid Columns
     MONDAY_COLUMN = "//th[contains(text(), 'Mon')]"
@@ -171,21 +170,28 @@ class TimesheetPage(BasePage):
             logger.info(f"Successfully selected project: {project_name}")
             self.page.wait_for_timeout(500)
 
-    def select_activity(self, activity_name: str, row_index: int = -1):
-        """Select an activity from dropdown.
+    def select_activity(self, activity_name: str, row_index: int = 0):
+        """Select an activity from dropdown in specific timesheet row.
 
         Args:
             activity_name: Activity name to select
-            row_index: Index of the row (0-based)
+            row_index: Index of the timesheet row (0-based, default: 0)
         """
         logger.info(f"Selecting activity: {activity_name} at row {row_index}")
 
-        # Get all activity dropdown triggers on the page
-        activity_dropdowns = self.page.locator(self.ACTIVITY_DROPDOWN_TRIGGER).all()
-        logger.info(f"Found {len(activity_dropdowns)} activity dropdowns")
+        # ✅ SELECTOR MỚI - CHỈ LẤY ACTIVITY DROPDOWN TRONG TIMESHEET ROWS
+        activity_dropdown_selector = (
+            "//tr[contains(@class, 'orangehrm-timesheet-table-body-row')]"  # Chỉ trong timesheet rows
+            "//div[contains(@class, 'oxd-select-text')]"  # Activity dropdown
+        )
+
+        # Get all activity dropdowns WITHIN timesheet rows only
+        activity_dropdowns = self.page.locator(self.ACTIVITY_DROPDOWN).all()
+        logger.info(f"Found {len(activity_dropdowns)} activity dropdowns in timesheet rows")
 
         # Click the dropdown for the specific row
         if row_index < len(activity_dropdowns):
+            logger.info(f"Clicking activity dropdown at index {row_index}")
             activity_dropdowns[row_index].click()
             self.page.wait_for_timeout(500)
 
@@ -194,10 +200,13 @@ class TimesheetPage(BasePage):
             if self._is_element_visible(option_locator, timeout=3):
                 self._click(option_locator)
                 self.page.wait_for_timeout(500)
+                logger.info(f"✓ Successfully selected activity: {activity_name}")
+            else:
+                logger.warning(f"Activity option '{activity_name}' not found in dropdown")
         else:
-            logger.warning(f"Row index {row_index} is out of range. Available dropdowns: {len(activity_dropdowns)}")
+            logger.error(f"Row index {row_index} is out of range. Available dropdowns: {len(activity_dropdowns)}")
 
-    def fill_hours(self, day: str, hours: str, row_index: int = 0):
+    def fill_hours(self, day: str, hours: str, row_index: int = 0, check_validation: bool = False):
         """Fill hours for a specific day.
 
         Args:
@@ -225,43 +234,10 @@ class TimesheetPage(BasePage):
             time_inputs[cell_index].clear()  # Clear trước
             time_inputs[cell_index].fill(hours)
             time_inputs[cell_index].press('Tab')  # Trigger save
-            self.page.wait_for_timeout(500)
+            # self.page.wait_for_timeout(1000)
             logger.info(f"✓ Filled {hours} hours for {day}")
         else:
             logger.error(f"Cell index {cell_index} out of range (total: {len(time_inputs)})")
-
-    def add_timesheet_row(self, project: str, activity: str, hours_data: dict = None, row_index: int = 0):
-        """Add a complete timesheet row with project, activity, and hours.
-
-        This method now works with the last row (newly added row) to avoid issues
-        when multiple rows exist.
-
-        Args:
-            project: Project name
-            activity: Activity name
-            hours_data: Dictionary with days and hours (e.g., {'monday': '8', 'tuesday': '7.5'})
-            row_index: Deprecated - kept for backward compatibility but not used
-        """
-        logger.info(f"Adding timesheet row: {project} - {activity}")
-
-        # Step 1: Click Add Row button
-        self.click_add_row()
-
-        # Step 2: Get the last (newly added) row
-        last_row = self.get_last_timesheet_row()
-        if not last_row:
-            logger.error("Failed to get last timesheet row after clicking Add Row")
-            return
-
-        # Step 3: Select project in the last row
-        self.select_project_in_row(last_row, project)
-
-        # Step 4: Select activity in the last row
-        self.select_activity_in_row(last_row, activity)
-
-        # Step 5: Fill hours in the last row
-        if hours_data:
-            self.fill_hours_in_row(last_row, hours_data)
 
     def click_submit(self):
         """Click the Submit button."""
@@ -292,12 +268,6 @@ class TimesheetPage(BasePage):
             self._click(confirm_button)
             self.page.wait_for_timeout(2000)
 
-    def click_reset(self):
-        """Click the Reset button to withdraw timesheet."""
-        logger.info("Clicking Reset button")
-        self._click(self.RESET_BUTTON)
-        self.page.wait_for_timeout(2000)
-
     def get_timesheet_status(self) -> str:
         """Get current timesheet status.
 
@@ -314,27 +284,6 @@ class TimesheetPage(BasePage):
             return "Rejected"
         return "Unknown"
 
-    def verify_grid_columns(self) -> list:
-        """Verify timesheet grid displays all 7 day columns.
-
-        Returns:
-            list: List of visible column names
-        """
-        logger.info("Verifying timesheet grid columns")
-        columns = []
-        column_locators = [
-            self.MONDAY_COLUMN, self.TUESDAY_COLUMN, self.WEDNESDAY_COLUMN,
-            self.THURSDAY_COLUMN, self.FRIDAY_COLUMN, self.SATURDAY_COLUMN,
-            self.SUNDAY_COLUMN
-        ]
-
-        for locator in column_locators:
-            if self._is_element_visible(locator, timeout=2):
-                text = self._get_text(locator)
-                columns.append(text)
-
-        return columns
-
     def get_row_total(self, row_index: int = 0) -> str:
         """Get row total hours.
 
@@ -344,141 +293,23 @@ class TimesheetPage(BasePage):
         Returns:
             str: Row total hours
         """
+        # wait for totals to be visible
+        self.page.wait_for_timeout(3000)
         row_totals = self.page.locator(self.ROW_TOTAL).all()
+        logger.debug(f"Row totals: {row_totals}")
         if row_index < len(row_totals):
-            return row_totals[row_index].text_content().strip()
+            total = row_totals[row_index].text_content().strip()
+            logger.debug(f"Row total: {total}")
+            return total
         return "0"
 
-    def get_grand_total(self) -> str:
-        """Get grand total hours for the week.
-
-        Returns:
-            str: Grand total hours
-        """
-        if self._is_element_visible(self.GRAND_TOTAL, timeout=2):
-            return self._get_text(self.GRAND_TOTAL)
-        return "0"
-
-    def is_success_message_visible(self) -> bool:
-        """Check if success message is displayed.
-
-        Returns:
-            bool: True if success message is visible
-        """
-        return self._is_element_visible(self.SUCCESS_MESSAGE, timeout=5)
-
-    def is_warning_message_visible(self) -> bool:
-        """Check if warning message is displayed.
-
-        Returns:
-            bool: True if warning message is visible
-        """
-        return self._is_element_visible(self.WARNING_MESSAGE, timeout=3)
-
-    def is_error_toast_visible(self) -> bool:
-        """Check if error toast message is displayed.
-
-        Returns:
-            bool: True if error toast is visible
-        """
-        return self._is_element_visible(self.ERROR_TOAST, timeout=3)
-
-    def is_required_error_visible(self) -> bool:
-        """Check if 'Required' error message is visible.
-
-        Returns:
-            bool: True if Required error is visible
-        """
-        return self._is_element_visible(self.ERROR_MESSAGE_REQUIRED, timeout=3)
-
-    def is_invalid_error_visible(self) -> bool:
-        """Check if 'Invalid' error message is visible.
-
-        Returns:
-            bool: True if Invalid error is visible
-        """
-        return self._is_element_visible(self.ERROR_MESSAGE_INVALID, timeout=3)
-
-    def is_positive_number_error_visible(self) -> bool:
-        """Check if 'Should be a positive number' error is visible.
+    def is_hours_error_visible(self) -> bool:
+        """Check if 'Should Be Less Than 24 and in HH:MM or Decimal Format' error is visible.
 
         Returns:
             bool: True if positive number error is visible
         """
-        return self._is_element_visible(self.ERROR_MESSAGE_POSITIVE, timeout=3)
-
-    def is_exceed_24_error_visible(self) -> bool:
-        """Check if 'Should not exceed 24' error is visible.
-
-        Returns:
-            bool: True if exceed 24 error is visible
-        """
-        return self._is_element_visible(self.ERROR_MESSAGE_EXCEED_24, timeout=3)
-
-    def get_rejection_comment(self) -> str:
-        """Get rejection comment text.
-
-        Returns:
-            str: Rejection comment
-        """
-        if self._is_element_visible(self.REJECTION_COMMENT, timeout=2):
-            return self._get_text(self.REJECTION_COMMENT)
-        return ""
-
-    def is_timesheet_editable(self) -> bool:
-        """Check if timesheet is editable (Edit button visible).
-
-        Returns:
-            bool: True if Edit button is visible
-        """
-        return self._is_element_visible(self.EDIT_BUTTON, timeout=2)
-
-    def is_timesheet_locked(self) -> bool:
-        """Check if timesheet is locked (cannot edit).
-
-        Returns:
-            bool: True if timesheet is locked
-        """
-        return not self.is_timesheet_editable()
-
-    def select_week(self, week_type: str = "current", weeks_ahead: int = 0):
-        """Select a specific week.
-
-        Args:
-            week_type: Type of week ("current", "future", "past")
-            weeks_ahead: Number of weeks ahead (for future weeks)
-        """
-        logger.info(f"Selecting week: {week_type}, weeks_ahead: {weeks_ahead}")
-        if week_type == "future":
-            for _ in range(weeks_ahead):
-                if self._is_element_visible(self.NEXT_WEEK_BUTTON, timeout=2):
-                    self._click(self.NEXT_WEEK_BUTTON)
-                    self.page.wait_for_timeout(1000)
-        elif week_type == "past":
-            for _ in range(abs(weeks_ahead)):
-                if self._is_element_visible(self.PREV_WEEK_BUTTON, timeout=2):
-                    self._click(self.PREV_WEEK_BUTTON)
-                    self.page.wait_for_timeout(1000)
-
-    def count_timesheet_rows(self):
-        """Count the number of timesheet rows present."""
-        logger.info("Counting timesheet rows")
-        rows = self.page.locator(self.TIMESHEET_ROWS).all()
-        logger.info(f"Total timesheet rows found: {len(rows)}")
-        return len(rows)
-
-    def get_last_timesheet_row(self):
-        """Get the last (most recently added) timesheet row element.
-
-        Returns:
-            Locator: The last row element or None if no rows exist
-        """
-        rows = self.page.locator(self.TIMESHEET_ROWS).all()
-        if rows:
-            logger.info(f"Found {len(rows)} rows, returning last row")
-            return rows[-1]
-        logger.warning("No timesheet rows found")
-        return None
+        return self._is_element_visible(self.ERROR_MESSAGE_HOURS, timeout=5)
 
     def select_project_in_row(self, row_element, project_name: str):
         """Select a project within a specific row.
@@ -502,29 +333,6 @@ class TimesheetPage(BasePage):
             logger.info(f"Successfully selected project: {project_name}")
         else:
             logger.warning(f"Project option '{project_name}' not found in dropdown")
-
-    def select_activity_in_row(self, row_element, activity_name: str):
-        """Select an activity within a specific row.
-
-        Args:
-            row_element: The row locator element
-            activity_name: Activity name to select
-        """
-        logger.info(f"Selecting activity '{activity_name}' in specific row")
-
-        # Find and click activity dropdown within this row
-        activity_dropdown = row_element.locator(self.ACTIVITY_DROPDOWN_IN_ROW).first
-        activity_dropdown.click()
-        self.page.wait_for_timeout(500)
-
-        # Select from listbox that appears
-        option_locator = f"//div[@role='listbox']//span[contains(text(), '{activity_name}')]"
-        if self._is_element_visible(option_locator, timeout=3):
-            self._click(option_locator)
-            self.page.wait_for_timeout(500)
-            logger.info(f"Successfully selected activity: {activity_name}")
-        else:
-            logger.warning(f"Activity option '{activity_name}' not found in dropdown")
 
     def fill_hours_in_row(self, row_element, hours_data: dict):
         """Fill hours for multiple days within a specific row.
@@ -560,25 +368,9 @@ class TimesheetPage(BasePage):
                 else:
                     logger.warning(f"Invalid day name: {day}")
 
-    def is_row_empty(self, row_index: int = 0) -> bool:
-        """Check if row is empty (no project selected).
-
-        Returns:
-            bool: True if row is empty
-        """
-        project_inputs = self.page.locator(self.PROJECT_INPUT).all()
-
-        if row_index >= len(project_inputs):
-            logger.warning(f"Row index {row_index} out of range for project inputs")
-            return True
-
-        project_value = project_inputs[row_index].input_value()
-        logger.info(f"Row index {row_index}: {project_value}")
-        return not project_value or project_value.strip() == ""
-
     def is_save_successful(self):
 
-        return self.page.locator(self.SUCCESS_MESSAGE).is_visible()
+        return self.page.locator(self.SUCCESS_MESSAGE).is_visible(timeout=3000)
 
     def save_timesheet(self):
         """Click the Save button."""
@@ -614,12 +406,28 @@ class TimesheetPage(BasePage):
         self.page.wait_for_timeout(500)
 
     def view_employee_timesheet(self):
-        """View timesheet for a specific employee.
-
-        Args:
-            employee_name: Name of the employee
-        """
+        """View timesheet for a specific employee."""
         logger.info(f"Viewing timesheet")
         # Click View button
         self._click(self.VIEW_BUTTON)
         self.page.wait_for_load_state('networkidle')
+
+    def go_to_next_week(self):
+        """Navigate to the next week in the timesheet view."""
+        logger.info("Navigating to next week")
+        self._click(self.NEXT_WEEK_BUTTON)
+        self.page.wait_for_timeout(2000)
+
+    def is_create_timesheet_button_disabled(self):
+        """Check if Create Timesheet button is disabled.
+
+        Returns:
+            bool: True if Create Timesheet button is disabled
+        """
+        button = self.page.locator(self.CREATE_TIMESHEET_BUTTON)
+        disabled = button.get_attribute("disabled")
+        return disabled is not None
+
+    def is_edit_button_visible(self):
+        """Check if Edit button is visible."""
+        return self._is_element_visible(self.EDIT_BUTTON, timeout=3)

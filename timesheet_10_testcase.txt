@@ -26,7 +26,7 @@
 **[TimeSheet-7]: Kiểm tra validation khi nhập số giờ âm**
 - **Mô tả:** Nhập hours = -5 hoặc -8
 - **Mục đích:** Test negative number validation
-- **Expected:** Error: "Should be a positive number", không cho save
+- **Expected:** Error: "Should Be Less Than 24 and in HH:MM or Decimal Format", không cho save
 
 **[TimeSheet-8]: Kiểm tra validation khi nhập số giờ vượt quá 24h/ngày**
 - **Mô tả:** Nhập hours = 25 hoặc 30 cho một ngày

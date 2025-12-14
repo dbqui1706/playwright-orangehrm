@@ -1,26 +1,6 @@
 {
   "test_suite": "Timesheet Management Module - End-to-End Flow",
   "description": "Test data for realistic Timesheet workflow: Employee creates → Supervisor approves/rejects",
-  "accounts": {
-    "employee": {
-      "username": "employee_user",
-      "password": "employee123",
-      "role": "ESS User",
-      "description": "Employee who creates and submits timesheets"
-    },
-    "supervisor": {
-      "username": "supervisor_user",
-      "password": "supervisor123",
-      "role": "ESS + Supervisor",
-      "description": "Supervisor who reviews and approves/rejects timesheets"
-    },
-    "admin": {
-      "username": "Admin",
-      "password": "admin123",
-      "role": "Admin",
-      "description": "Admin for setup and viewing all timesheets"
-    }
-  },
   "test_cases": {
     "TIMESHEETS_01": {
       "test_name": "Employee creates timesheet, submits, Supervisor approves",
@@ -102,20 +82,22 @@
       "expected_result": "Multiple projects submitted and approved"
     },
     "TIMESHEETS_05": {
-      "test_name": "Check feature Reset/Withdraw submitted timesheet",
-      "category": "negative",
-      "description": "Employee tries to reset/withdraw submitted before Supervisor review",
+      "test_name": "Check timesheet with decimal hours input",
+      "category": "positive",
+      "description": "Employee enters decimal hours in timesheet",
       "test_data": {
         "project": "ACME Ltd",
         "activity": "Development",
         "hours": {
-          "monday": "8",
-          "tuesday": "8"
+            "monday": "7.5",
+            "tuesday": "8.25",
+            "wednesday": "6.75",
+            "thursday": "8.0",
+            "friday": "7.5"
         },
-        "expected_status_after_submit": "Submitted",
-        "expected_status_after_withdraw": "Not Submitted"
+        "expected_total_hours": "38:00"
       },
-      "expected_result": "Withdraw successful, timesheet editable again"
+      "expected_result": "Decimal hours accepted and total calculated correctly"
     },
     "TIMESHEETS_06": {
       "test_name": "Employee creates timesheet with project without assigned time",
@@ -126,6 +108,77 @@
         "activity": "Development"
       },
       "expected_result": "Save/Submit blocked - no assigned time for project"
+    },
+    "TIMESHEETS_07": {
+      "test_name": "Employee attempts to enter negative hours in timesheet",
+      "category": "negative",
+      "description": "Employee inputs negative hours for a day",
+      "test_data": {
+        "project": "ACME Ltd",
+        "activity": "Development",
+        "hours": {
+          "monday": "-5",
+          "tuesday": "8"
+        }
+      },
+      "expected_result": "Should Be Less Than 24 and in HH:MM or Decimal Format"
+    },
+    "TIMESHEETS_08": {
+      "test_name": "Employee attempts to enter hours exceeding 24 in a day",
+      "category": "negative",
+      "description": "Employee inputs hours greater than 24 for a day",
+      "test_data": {
+        "project": "ACME Ltd",
+        "activity": "Development",
+        "hours": {
+          "monday": "25",
+          "tuesday": "8"
+        }
+      },
+      "expected_result": "Should not exceed 24"
+    },
+    "TIMESHEETS_09": {
+      "test_name": "Employee attempts to enter invalid text format for hours",
+      "category": "negative",
+      "description": "Employee inputs non-numeric text for hours",
+      "test_data": {
+        "project": "ACME Ltd",
+        "activity": "Development",
+        "hours": {
+          "monday": "abc",
+          "tuesday": "eight"
+        }
+      },
+      "expected_result": "Should Be Less Than 24 and in HH:MM or Decimal Format"
+    },
+    "TIMESHEETS_10": {
+      "test_name": "Employee attempts to create timesheet for a future week",
+      "category": "negative",
+      "description": "Employee creates timesheet for next week and create timesheet",
+      "test_data": {
+        "expected_create_timesheet": "disabled"
+      },
+      "expected_result": "Cannot submit future timesheet"
+    },
+    "TIMESHEETS_11": {
+      "test_name": "Check that approved timesheet cannot be edited",
+      "category": "negative",
+      "description": "Employee tries to edit timesheet after Supervisor approval",
+      "test_data": {
+        "project": "ACME Ltd",
+        "activity": "Development",
+        "hours": {
+          "monday": "8",
+          "tuesday": "8",
+          "wednesday": "8",
+          "thursday": "8",
+          "friday": "8"
+        },
+        "expected_status_after_submit": "Submitted",
+        "expected_status_after_approve": "Approved",
+        "edit_attempt_after_approval": true
+      },
+      "expected_result": "Edit button disabled or hidden, cannot edit approved timesheet"
     }
   }
 }

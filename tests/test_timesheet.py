@@ -71,24 +71,12 @@ class TestTimesheetEndToEnd:
         self._login(username, password)
         return self._navigate_to_timesheet(is_employee)
 
-    def _prepare_timesheet_row(self, timesheet_page, project_name: str, activity_name: str):
+    def _prepare_timesheet_row(self, timesheet_page, project_name: str, activity_name: str, row_index: int = 0) -> int:
         """Helper: Prepare a row for data entry (handles existing rows logic).
 
         Returns:
             int: Row index to use
         """
-        # total_rows = timesheet_page.count_timesheet_rows()
-        #
-        # if total_rows == 0 or timesheet_page.is_row_empty(0):
-        #     if total_rows == 0:
-        #         timesheet_page.click_add_row()
-        #         time.sleep(1)
-        #     row_index = 0
-        # else:
-        #     timesheet_page.click_add_row()
-        #     time.sleep(1)
-        #     row_index = total_rows
-        row_index = 0
         print(f"✓ Using row index: {row_index}")
 
         # Fill project and activity
@@ -104,7 +92,7 @@ class TestTimesheetEndToEnd:
         for day, hours in hours_data.items():
             if hours:
                 timesheet_page.fill_hours(day, hours, row_index=row_index)
-                time.sleep(0.5)
+                # time.sleep(0.5)
         print(f"✓ Added hours: {hours_data}")
         time.sleep(2)
 
@@ -461,7 +449,7 @@ class TestTimesheetEndToEnd:
     #             },
     #             {
     #                 "project": "ASF - Phase 1",
-    #                 "activity": "QA Testing",
+    #                 "activity": "Bug Fixes",
     #                 "hours": {"monday": "4", "tuesday": "4", "wednesday": "4"}
     #             }
     #         ],
@@ -491,18 +479,20 @@ class TestTimesheetEndToEnd:
         timesheet_page = self._login_and_navigate(
             username, password, is_employee=True
         )
+        employee_name = timesheet_page.get_employee_name()
+
 
         # STEP 2: Create/Edit Timesheet
         self._create_or_edit_timesheet(timesheet_page)
 
         # STEP 3: Add Multiple Projects/Activities
         for i, row in enumerate(test_data["rows"]):
-            if i != 0:
-                timesheet_page.click_add_row()
             project = row["project"]
             activity = row["activity"]
             hours = row["hours"]
-            row_index = self._prepare_timesheet_row(timesheet_page, project, activity)
+            if i > 0:
+                timesheet_page.click_add_row()
+            row_index = self._prepare_timesheet_row(timesheet_page, project, activity, row_index=i)
             self._fill_timesheet_hours(timesheet_page, hours, row_index)
 
         timesheet_page.save_timesheet()
@@ -520,7 +510,6 @@ class TestTimesheetEndToEnd:
         timesheet_page = self._login_and_navigate(
             VALID_USERNAME, VALID_PASSWORD, is_employee=False
         )
-        employee_name = timesheet_page.get_employee_name()
         timesheet_page.search_employee_timesheet(employee_name)
         timesheet_page.view_employee_timesheet()
         timesheet_page.click_approve()
@@ -567,43 +556,63 @@ class TestTimesheetEndToEnd:
         if submit_success and submit_success.strip().lower() == "submitted":
             pytest.fail(f"Expected error message '{test_data['expected_result']}', got '{submit_success}'")
 
-    # "Check feature Reset/Withdraw submitted timesheet",
-    # "category": "negative",
-    # "description": "Employee tries to reset/withdraw submitted before Supervisor review",
-    # def test_timesheet_05_reset_withdraw_submitted_timesheet(self, load_timesheet_data, create_mock_employee):
-    #     """
-    #     Negative Testcase: Employee tries to reset/withdraw submitted timesheet before Supervisor review
-    #     Flow:
-    #     -----
-    #     Step 1: Employee logs in and creates timesheet
-    #     Step 2: Employee submits timesheet
-    #     Step 3: Employee attempts to reset/withdraw the submitted timesheet
-    #     Expected Result:
-    #     ---------------
-    #     - Reset/Withdraw action should be blocked
-    #     - Appropriate error message should be displayed
-    #     """
-    #     test_data = load_timesheet_data["test_cases"]["TIMESHEETS_05"]
-    #     username, password, _, _ = create_mock_employee
-    #     # STEP 1: Employee Login
-    #     timesheet_page = self._login_and_navigate(
-    #         username, password, is_employee=True
-    #     )
-    #     # STEP 2: Create/Edit Timesheet
-    #     self._create_or_edit_timesheet(timesheet_page)
-    #     row_index = self._prepare_timesheet_row(timesheet_page, test_data["project"], test_data["activity"])
-    #     self._fill_timesheet_hours(timesheet_page, test_data["hours"], row_index)
-    #     timesheet_page.save_timesheet()
-    #     assert timesheet_page.is_save_successful(), "Timesheet save failed"
-    #     # STEP 3: Submit
-    #     timesheet_page.click_submit()
-    #     time.sleep(2)
-    #     submitted_status = timesheet_page.get_timesheet_status()
-    #     assert submitted_status == test_data["expected_status_after_submit"], \
-    #         f"Status should be 'Submitted', got '{submitted_status}'"
-    #     # STEP 4: Attempt to Reset/Withdraw
-    #     timesheet_page.click_reset_withdraw()
-    #     time.sleep(2)
+    # [TimeSheet-5]: Kiểm tra timesheet với số giờ thập phân (decimal hours)
+    # "TIMESHEETS_05": {
+    #     "test_name": "Check timesheet with decimal hours input",
+    #     "category": "positive",
+    #     "description": "Employee enters decimal hours in timesheet",
+    #     "test_data": {
+    #         "project": "ACME Ltd",
+    #         "activity": "Development",
+    #         "hours": {
+    #             "monday": "7.5",
+    #             "tuesday": "8.25",
+    #             "wednesday": "6.75",
+    #             "thursday": "8.0",
+    #             "friday": "7.5"
+    #         },
+    #         "expected_total_hours": "38.0"
+    #     },
+    #     "expected_result": "Decimal hours accepted and total calculated correctly"
+    # }
+    def test_timesheet_05_decimal_hours_entry(self, load_timesheet_data, create_mock_employee):
+        """
+        Testcase: Employee enters decimal hours in timesheet
+
+        Flow:
+        -----
+        Step 1: Employee logs in and creates timesheet
+        Step 2: Employee adds project/activity and enters decimal hours
+        Step 3: Employee saves timesheet
+        Step 4: Verify total hours calculation
+
+        Expected Result:
+        ---------------
+        - Decimal hours should be accepted
+        - Total hours should be calculated correctly
+        """
+        test_data = load_timesheet_data["test_cases"]["TIMESHEETS_05"]
+        username, password, _, _ = create_mock_employee
+
+        # STEP 1: Employee Login
+        timesheet_page = self._login_and_navigate(
+            username, password, is_employee=True
+        )
+
+        # STEP 2: Create/Edit Timesheet
+        self._create_or_edit_timesheet(timesheet_page)
+
+        # STEP 3: Add Project/Activity and Decimal Hours
+        row_index = self._prepare_timesheet_row(timesheet_page, test_data["test_data"]["project"], test_data["test_data"]["activity"])
+        self._fill_timesheet_hours(timesheet_page, test_data["test_data"]["hours"], row_index)
+        timesheet_page.save_timesheet()
+
+        assert timesheet_page.is_save_successful(), "Timesheet save failed"
+        time.sleep(2)
+        # STEP 4: Verify Total Hours
+        total_hours = timesheet_page.get_row_total(row_index)
+        assert total_hours == test_data["test_data"]["expected_total_hours"], \
+            f"Total hours should be '{test_data['test_data']['expected_total_hours']}', got '{total_hours}'"
 
 
     # [TimeSheet-6]: Kiểm tra tính năng nhân viên tạo timesheet 1 project nhưng không thêm trường hours
@@ -654,3 +663,263 @@ class TestTimesheetEndToEnd:
             pytest.fail(f"Expected error message '{test_data['expected_result']}', but timesheet was saved successfully")
         else:
             print(f"✓ Save blocked as expected with message: '{test_data['expected_result']}'")
+
+    # "TIMESHEETS_07": {
+    #       "test_name": "Employee attempts to enter negative hours in timesheet",
+    #       "category": "negative",
+    #       "description": "Employee inputs negative hours for a day",
+    #       "test_data": {
+    #         "project": "ACME Ltd",
+    #         "activity": "Development",
+    #         "hours": {
+    #           "monday": "-5",
+    #           "tuesday": "8"
+    #         }
+    #       },
+    #       "expected_result": "Should Be Less Than 24 and in HH:MM or Decimal Format"
+    #     }
+    def test_timesheet_07_negative_hours_entry(self, load_timesheet_data, create_mock_employee):
+        """
+        Negative Testcase: Employee attempts to enter negative hours in timesheet
+
+        Flow:
+        -----
+        Step 1: Employee logs in and creates timesheet
+        Step 2: Employee adds project/activity and enters negative hours
+        Step 3: Check contain error "Should Be Less Than 24 and in HH:MM or Decimal Format"
+
+        Expected Result:
+        ---------------
+        - Negative hours should be rejected
+        - Appropriate error message should be displayed
+        """
+        test_data = load_timesheet_data["test_cases"]["TIMESHEETS_07"]
+        username, password, _, _ = create_mock_employee
+
+        # STEP 1: Employee Login
+        timesheet_page = self._login_and_navigate(
+            username, password, is_employee=True
+        )
+
+        # STEP 2: Create/Edit Timesheet
+        self._create_or_edit_timesheet(timesheet_page)
+
+        # STEP 3: Add Project/Activity with Negative Hours
+        row_index = self._prepare_timesheet_row(timesheet_page, test_data["test_data"]["project"], test_data["test_data"]["activity"])
+        self._fill_timesheet_hours(timesheet_page, test_data["test_data"]["hours"], row_index)
+
+        assert timesheet_page.is_hours_error_visible() , \
+            f"Expected error message '{test_data['expected_result']}' not displayed for negative hours entry"
+
+    # "TIMESHEETS_08": {
+    #     "test_name": "Employee attempts to enter hours exceeding 24 in a day",
+    #     "category": "negative",
+    #     "description": "Employee inputs hours greater than 24 for a day",
+    #     "test_data": {
+    #         "project": "ACME Ltd",
+    #         "activity": "Development",
+    #         "hours": {
+    #             "monday": "25",
+    #             "tuesday": "8"
+    #         }
+    #     },
+    #     "expected_result": "Should not exceed 24"
+    # }
+    def test_timesheet_08_exceeding_24_hours_entry(self, load_timesheet_data, create_mock_employee):
+        """
+        Negative Testcase: Employee attempts to enter hours exceeding 24 in a day
+
+        Flow:
+        -----
+        Step 1: Employee logs in and creates timesheet
+        Step 2: Employee adds project/activity and enters hours > 24
+        Step 3: Check contain error "Should not exceed 24"
+
+        Expected Result:
+        ---------------
+        - Hours exceeding 24 should be rejected
+        - Appropriate error message should be displayed
+        """
+        test_data = load_timesheet_data["test_cases"]["TIMESHEETS_08"]
+        username, password, _, _ = create_mock_employee
+
+        # STEP 1: Employee Login
+        timesheet_page = self._login_and_navigate(
+            username, password, is_employee=True
+        )
+
+        # STEP 2: Create/Edit Timesheet
+        self._create_or_edit_timesheet(timesheet_page)
+
+        # STEP 3: Add Project/Activity with Exceeding Hours
+        row_index = self._prepare_timesheet_row(timesheet_page, test_data["test_data"]["project"], test_data["test_data"]["activity"])
+        self._fill_timesheet_hours(timesheet_page, test_data["test_data"]["hours"], row_index)
+
+        assert timesheet_page.is_hours_error_visible() , \
+            f"Expected error message '{test_data['expected_result']}' not displayed for exceeding hours entry"
+
+    # "TIMESHEETS_09": {
+    #     "test_name": "Employee attempts to enter invalid text format for hours",
+    #     "category": "negative",
+    #     "description": "Employee inputs non-numeric text for hours",
+    #     "test_data": {
+    #         "project": "ACME Ltd",
+    #         "activity": "Development",
+    #         "hours": {
+    #             "monday": "abc",
+    #             "tuesday": "eight"
+    #         }
+    #     },
+    #     "expected_result": "Error: Invalid or field reject non-numeric input"
+    # }
+    def test_timesheet_09_invalid_text_format_hours_entry(self, load_timesheet_data, create_mock_employee):
+        """
+        Negative Testcase: Employee attempts to enter invalid text format for hours
+
+        Flow:
+        -----
+        Step 1: Employee logs in and creates timesheet
+        Step 2: Employee adds project/activity and enters non-numeric text for hours
+        Step 3: Check contain error "Error: Invalid or field reject non-numeric input"
+
+        Expected Result:
+        ---------------
+        - Non-numeric text should be rejected
+        - Appropriate error message should be displayed
+        """
+        test_data = load_timesheet_data["test_cases"]["TIMESHEETS_09"]
+        username, password, _, _ = create_mock_employee
+
+        # STEP 1: Employee Login
+        timesheet_page = self._login_and_navigate(
+            username, password, is_employee=True
+        )
+
+        # STEP 2: Create/Edit Timesheet
+        self._create_or_edit_timesheet(timesheet_page)
+
+        # STEP 3: Add Project/Activity with Invalid Text Hours
+        row_index = self._prepare_timesheet_row(timesheet_page, test_data["test_data"]["project"], test_data["test_data"]["activity"])
+        self._fill_timesheet_hours(timesheet_page, test_data["test_data"]["hours"], row_index)
+
+        assert timesheet_page.is_hours_error_visible() , \
+            f"Expected error message '{test_data['expected_result']}' not displayed for invalid text hours entry"
+
+    # "TIMESHEETS_10": {
+    #     "test_name": "Employee attempts to create timesheet for a future week",
+    #     "category": "negative",
+    #     "description": "Employee creates timesheet for next week and create timesheet",
+    #     "test_data": {
+    #         "expected_create_timesheet": "disabled"
+    #     },
+    #     "expected_result": "Cannot submit future timesheet"
+    # }
+    def test_timesheet_10_create_future_week_timesheet(self, load_timesheet_data, create_mock_employee):
+        """
+        Negative Testcase: Employee attempts to create timesheet for a future week
+
+        Flow:
+        -----
+        Step 1: Employee logs in and navigates to timesheet page
+        Step 2: Employee selects next week
+        Step 3: Check if "Create Timesheet" button is disabled
+
+        Expected Result:
+        ---------------
+        - Employee should not be able to create timesheet for future week
+        - Appropriate message or disabled state should be displayed
+        """
+        test_data = load_timesheet_data["test_cases"]["TIMESHEETS_10"]
+        username, password, _, _ = create_mock_employee
+
+        # STEP 1: Employee Login
+        timesheet_page = self._login_and_navigate(
+            username, password, is_employee=True
+        )
+
+        # STEP 2: Select Next Week
+        timesheet_page.go_to_next_week()
+        time.sleep(2)
+
+        # STEP 3: Verify "Create Timesheet" Button State
+        is_create_disabled = timesheet_page.is_create_timesheet_button_disabled()
+        assert is_create_disabled, \
+            f"Expected 'Create Timesheet' button to be disabled for future week, but it was enabled"
+
+    # "TIMESHEETS_11": {
+    #     "test_name": "Check that approved timesheet cannot be edited",
+    #     "category": "negative",
+    #     "description": "Employee tries to edit timesheet after Supervisor approval",
+    #     "test_data": {
+    #         "project": "ACME Ltd",
+    #         "activity": "Development",
+    #         "hours": {
+    #             "monday": "8",
+    #             "tuesday": "8",
+    #             "wednesday": "8",
+    #             "thursday": "8",
+    #             "friday": "8"
+    #         },
+    #         "expected_status_after_submit": "Submitted",
+    #         "expected_status_after_approve": "Approved",
+    #         "edit_attempt_after_approval": true
+    #     },
+    #     "expected_result": "Edit button disabled or hidden, cannot edit approved timesheet"
+    # }
+    def test_timesheet_11_edit_approved_timesheet(self, load_timesheet_data, create_mock_employee):
+        """
+        Negative Testcase: Check that approved timesheet cannot be edited
+
+        Flow:
+        -----
+        Step 1: Employee logs in and creates timesheet
+        Step 2: Employee adds project/activity and hours
+        Step 3: Employee submits timesheet
+        Step 4: Supervisor approves timesheet
+        Step 5: Employee attempts to edit approved timesheet
+
+        Expected Result:
+        ---------------
+        - Edit button should be disabled or hidden for approved timesheet
+        - Employee should not be able to edit approved timesheet
+        """
+        test_data = load_timesheet_data["test_cases"]["TIMESHEETS_11"]
+        username, password, _, _ = create_mock_employee
+
+        # STEP 1: Employee Login
+        timesheet_page = self._login_and_navigate(
+            username, password, is_employee=True
+        )
+        employee_name = timesheet_page.get_employee_name()
+
+        # STEP 2: Create/Edit Timesheet
+        self._create_or_edit_timesheet(timesheet_page)
+
+        # STEP 3: Add Project/Activity and Hours
+        row_index = self._prepare_timesheet_row(timesheet_page, test_data["test_data"]["project"], test_data["test_data"]["activity"])
+        self._fill_timesheet_hours(timesheet_page, test_data["test_data"]["hours"], row_index)
+        timesheet_page.save_timesheet()
+        assert timesheet_page.is_save_successful(), "Timesheet save failed"
+
+        # STEP 4: Submit
+        timesheet_page.click_submit()
+        time.sleep(2)
+        submitted_status = timesheet_page.get_timesheet_status()
+        assert submitted_status == test_data["test_data"]["expected_status_after_submit"], \
+            f"Status should be 'Submitted', got '{submitted_status}'"
+        # STEP 5: Supervisor Approves
+        self._logout()
+        timesheet_page = self._login_and_navigate(
+            VALID_USERNAME, VALID_PASSWORD, is_employee=False
+        )
+        timesheet_page.search_employee_timesheet(employee_name)
+        timesheet_page.view_employee_timesheet()
+        timesheet_page.click_approve()
+        # STEP 6: Attempt to Edit Approved Timesheet
+        self._logout()
+        timesheet_page = self._login_and_navigate(
+            username, password, is_employee=True
+        )
+        can_edit = timesheet_page.is_edit_button_visible()
+        assert not can_edit, \
+            "Edit button should be disabled or hidden for approved timesheet, but it is visible"
