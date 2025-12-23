@@ -282,7 +282,7 @@ class TestAddProject:
         assert project_page.is_success_message_visible(), \
             "First project should be created successfully"
 
-        time.sleep(2)
+        time.sleep(5)
 
         # Try to add duplicate project with same name
         project_page.navigate_to_project_page()

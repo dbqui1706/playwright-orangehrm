@@ -1,13 +1,13 @@
 """Configuration file for test automation."""
 
 # Base URLs
-BASE_URL = "https://opensource-demo.orangehrmlive.com/web/index.php/"
+BASE_URL = "https://dbqui176-osondemand.orangehrm.com/"
 
 # Test credentials
 # ADMIN
 VALID_USERNAME = "Admin"
-# VALID_PASSWORD = "o@M@dO1@SLj0"
-VALID_PASSWORD = "admin123"
+VALID_PASSWORD = "o@M@dO1@SLj0"
+# VALID_PASSWORD = "admin123"
 
 # Employee
 EMPLOYEE_USERNAME = "employee-john"
